@@ -1,25 +1,33 @@
 import cssText from "data-text:~style.css"
 import type { PlasmoCSConfig } from "plasmo"
 
-import { CountButton } from "~features/count-button"
-
 export const config: PlasmoCSConfig = {
-  matches: ["https://docs.plasmo.com/*"]
+  matches: ["https://job.jobnet.dk/CV/FindWork/Details/*"]
 }
 
-export const getStyle = () => {
-  const style = document.createElement("style")
-  style.textContent = cssText
-  return style
-}
-
-const PlasmoOverlay = () => {
+// TODO: Only show when page is scrolled to top or mouse is hovering over the top of the page
+const ApplyButton = () => {
+  const onApply = () => {
+    console.log("Applying")
+    const jobDescription = document.querySelector(
+      "section.job-description-col"
+    ) as HTMLElement
+    if (jobDescription) {
+      console.log(jobDescription.innerText)
+    }
+  }
   return (
-    <div className="plasmo-z-50 plasmo-flex plasmo-fixed plasmo-top-32 plasmo-right-8">
-      <h1>Ok, vi ruller</h1>
-      <CountButton />
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        width: "100vw",
+        position: "fixed"
+      }}>
+      <button onClick={onApply}>Ansøg med JobNemt</button>
     </div>
   )
 }
 
-export default PlasmoOverlay
+export default ApplyButton

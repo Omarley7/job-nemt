@@ -2,7 +2,7 @@ import { type ChangeEvent } from "react"
 
 import { useStorage } from "@plasmohq/storage/hook"
 
-import { LinkButton } from "~features/count-button"
+import { LinkButton } from "~features/button"
 
 import "~style.css"
 
