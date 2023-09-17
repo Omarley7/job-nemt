@@ -58,27 +58,31 @@ function IndexPopup() {
   const url = new URL("https://job.jobnet.dk/CV/FindWork")
   url.searchParams.append("SearchString", title)
 
-  // "chrome-extension://" + chrome.runtime.id + "/tabs/uploadCV.html"
+  const uploadURL =
+    "chrome-extension://" + chrome.runtime.id + "/tabs/uploadCV.html"
   return (
-    <form>
-      <Layout>
-        <Input
-          label="Hej"
-          onChange={(e) => setName(e.target.value)}
-          placeholder="[indsæt navn]"
-          value={name}
-          boldLabel
-        />
-        <Input
-          label="Stilling"
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="[indsæt titel]"
-          value={title}
-        />
+    <>
+      <form>
+        <Layout>
+          <Input
+            label="Hej"
+            onChange={(e) => setName(e.target.value)}
+            placeholder="[indsæt navn]"
+            value={name}
+            boldLabel
+          />
+          <Input
+            label="Stilling"
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="[indsæt titel]"
+            value={title}
+          />
 
-        <LinkButton text={"Find job nemt"} url={url.toString()} submit />
-      </Layout>
-    </form>
+          <LinkButton text={"Find job nemt"} url={url.toString()} submit />
+        </Layout>
+      </form>
+      <LinkButton text={"Upload CV"} url={uploadURL} />
+    </>
   )
 }
 
