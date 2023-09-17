@@ -17,3 +17,25 @@ export const CountButton = () => {
     </button>
   )
 }
+
+interface ButtonDetails {
+  submit?: boolean
+  text: string
+  url: string
+}
+
+// Opens new tab with link on click
+export const LinkButton = (props: ButtonDetails) => {
+  console.log(`Going to ${props.url}`)
+  return (
+    <button
+      className="plasmo-px-4 plasmo-py-2 plasmo-rounded-lg plasmo-transition-all plasmo-border-none
+      plasmo-shadow-lg hover:plasmo-shadow-md plasmo-bg-blue-400 hover:plasmo-bg-blue-300
+      plasmo-text-base plasmo-font-semibold plasmo-text-neutral-200 hover:plasmo-text-neutral-100
+      active:plasmo-scale-105"
+      onClick={() => window.open(props.url, "_blank")}
+      type={props.submit ? "submit" : "button"}>
+      {props.text}
+    </button>
+  )
+}
