@@ -6,8 +6,6 @@ import { LinkButton } from "~features/button"
 
 import "~style.css"
 
-import { URLSearchParams } from "url"
-
 function Layout({ children }) {
   return (
     <div
@@ -24,6 +22,7 @@ interface InputProps {
   placeholder: string
   value: string
   onChange: (e: ChangeEvent<HTMLInputElement>) => void
+  type?: string
 }
 
 function Input(props: InputProps) {
@@ -40,7 +39,7 @@ function Input(props: InputProps) {
       </div>
       <input
         id="name"
-        type="text"
+        type={props.type || "text"}
         style={{ width: "min-content", maxWidth: "60%" }}
         placeholder={props.placeholder}
         className={`plasmo-flex plasmo-flex-shrink plasmo-text-base plasmo-font-sans plasmo-bg-zinc-100 plasmo-rounded-lg`}
@@ -54,9 +53,13 @@ function Input(props: InputProps) {
 function IndexPopup() {
   const [name, setName] = useStorage("user-name", "")
   const [title, setTitle] = useStorage("user-title", "")
+  const [APIKey, setAPIKey] = useStorage("APIKey", "")
 
   const url = new URL("https://job.jobnet.dk/CV/FindWork")
   url.searchParams.append("SearchString", title)
+
+  //q: What is the comment syntax in React HTML? <!-- --> doesn't work
+  //a: {/* */} works
 
   const uploadURL =
     "chrome-extension://" + chrome.runtime.id + "/tabs/uploadCV.html"
@@ -64,24 +67,43 @@ function IndexPopup() {
     <>
       <form>
         <Layout>
-          <Input
-            label="Hej"
-            onChange={(e) => setName(e.target.value)}
-            placeholder="[indsæt navn]"
-            value={name}
-            boldLabel
-          />
-          <Input
-            label="Stilling"
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="[indsæt titel]"
-            value={title}
-          />
+          {/** TODO: Should only run when focus leaves input. Error handle invalid API key */}
+          {APIKey === "" ? (
+            <>
+              <h1 className="plasmo-text-2xl plasmo-font-bold plasmo-font-sans">
+                Indsæt din OpenAI API nøgle
+              </h1>
+              <Input
+                label="API nøgle"
+                type="password"
+                onChange={(e) => setAPIKey(e.target.value)}
+                placeholder="[indsæt API nøgle]"
+                value={APIKey}
+                boldLabel
+              />
+            </>
+          ) : (
+            <>
+              <Input
+                label="Hej"
+                onChange={(e) => setName(e.target.value)}
+                placeholder="[indsæt navn]"
+                value={name}
+                boldLabel
+              />
+              <Input
+                label="Stilling"
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="[indsæt titel]"
+                value={title}
+              />
 
-          <LinkButton text={"Find job nemt"} url={url.toString()} submit />
+              <LinkButton text={"Find job nemt"} url={url.toString()} submit />
+            </>
+          )}
+          <LinkButton text={"Upload CV"} url={uploadURL} />
         </Layout>
       </form>
-      <LinkButton text={"Upload CV"} url={uploadURL} />
     </>
   )
 }

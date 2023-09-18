@@ -7,10 +7,16 @@ export const config: PlasmoCSConfig = {
   matches: ["https://job.jobnet.dk/CV/FindWork/Details/*"]
 }
 
+export const getStyle = () => {
+  const style = document.createElement("style")
+  style.textContent = cssText
+  return style
+}
+
 const chatURL =
   "chrome-extension://" + chrome.runtime.id + "/tabs/applicationChat.html"
 
-// TODO: Only show when page is scrolled to top or mouse is hovering over the top of the page
+console.log("Hello from content script")
 const ApplyButton = () => {
   const [application, setApplication] = useStorage("application", {})
   const onApply = () => {
@@ -30,13 +36,20 @@ const ApplyButton = () => {
   return (
     <div
       style={{
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
         width: "100vw",
         position: "fixed"
-      }}>
-      <button onClick={onApply}>Ansøg med JobNemt</button>
+      }}
+      className="plasmo-flex plasmo-justify-center plasmo-align-middle">
+      {/* TODO: Only show when page is scrolled to top or mouse is hovering over the top of the page */}
+      <button
+        style={{
+          background:
+            "right center no-repeat,linear-gradient(#bfd345 25%,#8c9b33)"
+        }}
+        className="plasmo-text-lg plasmo-p-4 plasmo-rounded-md plasmo-font-bold plasmo-m-2"
+        onClick={onApply}>
+        Ansøg med JobNemt
+      </button>
     </div>
   )
 }
