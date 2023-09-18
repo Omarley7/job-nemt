@@ -33,23 +33,17 @@ const ApplyButton = () => {
     }
   }
   return (
-    <div
-      style={{
-        width: "100vw",
-        position: "fixed"
-      }}
-      className="plasmo-flex plasmo-justify-center plasmo-align-middle">
+    <>
       {/* TODO: Only show when page is scrolled to top or mouse is hovering over the top of the page */}
       <button
-        style={{
-          background:
-            "right center no-repeat,linear-gradient(#bfd345 25%,#8c9b33)"
-        }}
-        className="plasmo-text-lg plasmo-p-4 plasmo-rounded-md plasmo-font-bold plasmo-m-2"
+        className="jn-text-2xl jn-p-4 jn-rounded-md jn-font-bold jn-m-2
+      jn-transition-all jn-duration-400 jn-ease-in-out
+      jn-fixed -jn-translate-x-1/2 jn-left-1/2 jn-bg-jobnet-green
+      hover:jn-bg-jobnet-light-green"
         onClick={onApply}>
         Ansøg med JobNemt
       </button>
-    </div>
+    </>
   )
 }
 

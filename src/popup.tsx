@@ -9,7 +9,7 @@ import "~style.css"
 function Layout({ children }) {
   return (
     <div
-      className="plasmo-flex plasmo-flex-col plasmo-items-center plasmo-p-3"
+      className="jn-flex jn-flex-col jn-items-center jn-p-3"
       style={{ width: "16rem" }}>
       {children}
     </div>
@@ -27,12 +27,12 @@ interface InputProps {
 
 function Input(props: InputProps) {
   return (
-    <div className="plasmo-flex plasmo-flex-row plasmo-justify-center plasmo-p-4">
+    <div className="jn-flex jn-flex-row jn-justify-center jn-p-4">
       <div style={{ marginRight: "0.2rem" }}>
         <label
           className={`${
-            props.boldLabel !== undefined ? "plasmo-font-bold" : ""
-          } plasmo-text-base plasmo-font-sans`}>
+            props.boldLabel !== undefined ? "jn-font-bold" : ""
+          } jn-text-base jn-font-sans`}>
           {props.label}
         </label>
         <br />
@@ -42,7 +42,7 @@ function Input(props: InputProps) {
         type={props.type || "text"}
         style={{ width: "min-content", maxWidth: "60%" }}
         placeholder={props.placeholder}
-        className={`plasmo-flex plasmo-flex-shrink plasmo-text-base plasmo-font-sans plasmo-bg-zinc-100 plasmo-rounded-lg`}
+        className={`jn-flex jn-flex-shrink jn-text-base jn-font-sans jn-bg-zinc-100 jn-rounded-lg`}
         onChange={props.onChange}
         value={props.value}
       />
@@ -70,7 +70,7 @@ function IndexPopup() {
           {/** TODO: Should only run when focus leaves input. Error handle invalid API key */}
           {APIKey === "" ? (
             <>
-              <h1 className="plasmo-text-2xl plasmo-font-bold plasmo-font-sans">
+              <h1 className="jn-text-2xl jn-font-bold jn-font-sans">
                 Indsæt din OpenAI API nøgle
               </h1>
               <Input
