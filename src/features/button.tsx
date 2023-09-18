@@ -26,7 +26,6 @@ interface ButtonDetails {
 
 // Opens new tab with link on click
 export const LinkButton = (props: ButtonDetails) => {
-  console.log(`Going to ${props.url}`)
   return (
     <button
       className="plasmo-px-4 plasmo-py-2 plasmo-rounded-lg plasmo-transition-all plasmo-border-none

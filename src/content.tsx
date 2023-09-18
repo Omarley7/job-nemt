@@ -1,6 +1,7 @@
 import cssText from "data-text:~style.css"
 import type { PlasmoCSConfig } from "plasmo"
 
+import { sendToBackground } from "@plasmohq/messaging"
 import { useStorage } from "@plasmohq/storage/hook"
 
 export const config: PlasmoCSConfig = {
@@ -16,11 +17,10 @@ export const getStyle = () => {
 const chatURL =
   "chrome-extension://" + chrome.runtime.id + "/tabs/applicationChat.html"
 
-console.log("Hello from content script")
 const ApplyButton = () => {
   const [application, setApplication] = useStorage("application", {})
-  const onApply = () => {
-    console.log("Applying")
+
+  const onApply = async () => {
     const jobDescription = document.querySelector(
       "section.job-description-col"
     ) as HTMLElement
@@ -29,8 +29,10 @@ const ApplyButton = () => {
         ...application,
         jobDescription: jobDescription.innerText
       })
-      console.log(`Going to ${chatURL}`)
-      window.open(chatURL, "_blank")
+      await sendToBackground({
+        name: "chat",
+        body: { url: chatURL, application }
+      })
     }
   }
   return (
