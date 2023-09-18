@@ -18,20 +18,17 @@ const chatURL =
   "chrome-extension://" + chrome.runtime.id + "/tabs/applicationChat.html"
 
 const ApplyButton = () => {
-  const [application, setApplication] = useStorage("application", {})
+  const [description, setDescription] = useStorage("job-description", {})
 
   const onApply = async () => {
     const jobDescription = document.querySelector(
       "section.job-description-col"
     ) as HTMLElement
     if (jobDescription) {
-      setApplication({
-        ...application,
-        jobDescription: jobDescription.innerText
-      })
+      setDescription(jobDescription.innerText)
       await sendToBackground({
         name: "chat",
-        body: { url: chatURL, application }
+        body: { url: chatURL }
       })
     }
   }
