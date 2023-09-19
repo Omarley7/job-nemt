@@ -18,15 +18,11 @@ const handler: PlasmoMessaging.MessageHandler = async (req, res) => {
 
   const userCV = await storage.get("user-cv")
   if (!userCV) {
-    // Watch strategy might not be best approach... Perhaps just return false and let the user click the button again?
-    // In that case, storage should be set within this if statement
-    storage.watch({
-      "user-cv": () => {
-        storage.unwatch({ "user-cv": () => {} })
-        goToChat()
-      }
+    // Prompt to upload CV
+    chrome.tabs.create({
+      url: "chrome-extension://" + chrome.runtime.id + "/tabs/uploadCV.html"
     })
-    res.send({ status: "waiting" })
+    res.send({ status: "missing_cv" })
     return
   }
 
