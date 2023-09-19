@@ -43,7 +43,7 @@ const ApplyButton = () => {
     if (jobDescription) {
       const res = await sendToBackground({
         name: "openChat",
-        body: { jobDescription }
+        body: jobDescription.innerText
       })
       if (res?.error == "missing_cv") {
         alert("Du skal uploade dit CV før du kan ansøge med JobNemt")
@@ -55,7 +55,6 @@ const ApplyButton = () => {
   }
   return (
     <>
-      {/* TODO: Only show when page is scrolled to top or mouse is hovering over the top of the page */}
       <button
         className={`jn-text-2xl jn-p-4 jn-rounded-md jn-font-bold jn-m-2
       jn-transition-all jn-duration-400 jn-ease-in-out

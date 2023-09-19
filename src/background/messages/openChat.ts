@@ -5,13 +5,15 @@ const storage = new Storage()
 
 const goToChat = () => {
   chrome.tabs.create({
-    url:
-      "chrome-extension://" + chrome.runtime.id + "/tabs/applicationChat.html"
+    url: "chrome-extension://" + chrome.runtime.id + "/tabs/jobChat.html"
   })
 }
 
 const handler: PlasmoMessaging.MessageHandler = async (req, res) => {
-  if (!req.body) {
+  if (typeof req.body !== "string") {
+    res.send({ error: "invalid_request" })
+    console.error("Invalid request body, got:")
+    console.error(req.body)
     return
   }
   storage.set("job-description", req.body)

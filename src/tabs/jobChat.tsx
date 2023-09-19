@@ -35,6 +35,8 @@ function ChatApp() {
   const [API_KEY] = useStorage("APIKey", "")
   const [jobposting] = useStorage("job-description", "")
 
+  console.log(jobposting)
+
   const jobpostingMessage: ApiMessage = {
     role: "user",
     content: jobposting
@@ -52,7 +54,7 @@ function ChatApp() {
       sentTime: "just now",
       sender: "ChatGPT",
       direction: "incoming",
-      position: "first"
+      position: "last"
     }
   ])
   const [isTyping, setIsTyping] = useState<boolean>(false)
@@ -62,7 +64,7 @@ function ChatApp() {
       message,
       direction: "outgoing",
       sender: "user",
-      position: "last"
+      position: "first"
     }
 
     const newMessages = [...messages, newMessage]
@@ -84,6 +86,7 @@ function ChatApp() {
       messages: [systemMessage, jobpostingMessage, CVmessage, ...apiMessages]
     }
 
+    console.log("apiRequestBody", apiRequestBody)
     await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
