@@ -1,8 +1,8 @@
 import cssText from "data-text:~style.css"
 import type { PlasmoCSConfig } from "plasmo"
+import { useEffect, useState } from "react"
 
 import { sendToBackground } from "@plasmohq/messaging"
-import { useStorage } from "@plasmohq/storage/hook"
 
 export const config: PlasmoCSConfig = {
   matches: ["https://job.jobnet.dk/CV/FindWork/Details/*"]
@@ -14,32 +14,52 @@ export const getStyle = () => {
   return style
 }
 
-const chatURL =
-  "chrome-extension://" + chrome.runtime.id + "/tabs/applicationChat.html"
+const getJobDescription = () => {
+  return document.querySelector("section.job-description-col") as HTMLElement
+}
 
 const ApplyButton = () => {
-  const [description, setDescription] = useStorage("job-description", {})
+  const [isButtonVisible, setIsButtonVisible] = useState(true)
+
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      if (e.clientY > window.innerHeight * 0.3) {
+        setIsButtonVisible(false)
+      } else {
+        setIsButtonVisible(true)
+      }
+    }
+
+    window.addEventListener("mousemove", handleMouseMove)
+
+    return () => {
+      // Cleanup
+      window.removeEventListener("mousemove", handleMouseMove)
+    }
+  }, [])
 
   const onApply = async () => {
-    const jobDescription = document.querySelector(
-      "section.job-description-col"
-    ) as HTMLElement
+    const jobDescription = getJobDescription()
     if (jobDescription) {
-      setDescription(jobDescription.innerText)
-      await sendToBackground({
-        name: "chat",
-        body: { url: chatURL }
+      const res = await sendToBackground({
+        name: "openChat",
+        body: { jobDescription }
       })
+      console.log(res)
+    } else {
+      console.error("No job description found")
     }
   }
   return (
     <>
       {/* TODO: Only show when page is scrolled to top or mouse is hovering over the top of the page */}
       <button
-        className="jn-text-2xl jn-p-4 jn-rounded-md jn-font-bold jn-m-2
+        className={`jn-text-2xl jn-p-4 jn-rounded-md jn-font-bold jn-m-2
       jn-transition-all jn-duration-400 jn-ease-in-out
       jn-fixed -jn-translate-x-1/2 jn-left-1/2 jn-bg-jobnet-green
-      hover:jn-bg-jobnet-light-green"
+      hover:jn-bg-jobnet-light-green ${
+        !isButtonVisible ? "-jn-translate-y-full" : null
+      }`}
         onClick={onApply}>
         Ansøg med JobNemt
       </button>
