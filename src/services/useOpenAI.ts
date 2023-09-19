@@ -1,10 +1,9 @@
-import { DA_INITIAL_PROMPT, DA_SYSTEM_MESSAGE } from "constants/prompts"
-import { useState } from "react"
+import { DA_INITIAL_PROMPT } from "constants/prompts"
 
 import { useStorage } from "@plasmohq/storage/hook"
 
-interface ApiMessage {
-  role: "user" | "system"
+export interface ApiMessage {
+  role: "user" | "system" | "assistant"
   content: string
 }
 
@@ -21,31 +20,18 @@ export const createInitialPrompt = (
  * @param param0
  * @returns
  */
-export const useChadMVP = (api_key: string) => {
-  const [messages, setMessages] = useState<ApiMessage[]>([
-    {
-      role: "system",
-      content: DA_SYSTEM_MESSAGE
-    }
-  ])
-  console.log("API key: ", api_key)
+export const useChadMVP = () => {
+  const [API_KEY] = useStorage("APIKey")
 
-  const sendMessage = async ({ role, content }: ApiMessage) => {
-    console.log("API key: ", api_key)
-    setMessages((messages) => [...messages, { role, content }])
-
-    const response = await PostPrompt(messages, api_key)
-    setMessages((messages) => [
-      ...messages,
-      { role: "system", content: response }
-    ])
+  const sendMessage = async (messages: ApiMessage[]) => {
+    const response = await PostPrompt(messages, API_KEY)
     return response
   }
 
   return { sendMessage }
 }
 
-interface ApiResponseBody {
+export interface ApiResponseBody {
   choices: { message: { content: string } }[]
 }
 
@@ -56,13 +42,15 @@ interface ApiResponseBody {
  * @param api_key
  * @returns
  */
-const PostPrompt = async (messages: ApiMessage[], api_key: string) => {
+export const PostPrompt = async (
+  messages: ApiMessage[],
+  api_key: string
+): Promise<string> => {
   const apiRequestBody = {
     model: "gpt-3.5-turbo",
     messages: messages
   }
 
-  console.log("Token: ", api_key)
   try {
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",

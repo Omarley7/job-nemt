@@ -1,3 +1,4 @@
+import { TIMEOUT } from "dns"
 import cssText from "data-text:~style.css"
 import type { PlasmoCSConfig } from "plasmo"
 import { useEffect, useState } from "react"
@@ -20,6 +21,8 @@ const getJobDescription = () => {
 
 const ApplyButton = () => {
   const [isButtonVisible, setIsButtonVisible] = useState(true)
+  const [isButtonBusy, setIsButtonBusy] = useState(false)
+  let btnText = "Ansøg med JobNemt"
 
   useEffect(() => {
     const handleMouseMove = (e) => {
@@ -41,6 +44,7 @@ const ApplyButton = () => {
   const onApply = async () => {
     const jobDescription = getJobDescription()
     if (jobDescription) {
+      setIsButtonBusy(true)
       const res = await sendToBackground({
         name: "openChat",
         body: jobDescription.innerText
@@ -49,21 +53,34 @@ const ApplyButton = () => {
         alert("Du skal uploade dit CV før du kan ansøge med JobNemt")
         sendToBackground({ name: "openCVmanager" })
       }
+      setIsButtonBusy(false)
+      btnText = "Done!"
+      setTimeout(() => {
+        btnText = "Ansøg med JobNemt"
+      }, 3000)
     } else {
       console.error("No job description found")
     }
   }
   return (
     <>
+      {/* isButtonBusy ? (
+        <div
+          className="jn-fixed jn-top-0 jn-left-0 jn-w-screen jn-h-screen
+        jn-bg-black jn-opacity-50 jn-z-50
+        jn-cursor-progress
+        "></div>
+      ) : null*/}
       <button
+        disabled={isButtonBusy}
         className={`jn-text-2xl jn-p-4 jn-rounded-md jn-font-bold jn-m-2
       jn-transition-all jn-duration-400 jn-ease-in-out
+      disabled:jn-opacity-80 disabled:jn-cursor-wait 
       jn-fixed -jn-translate-x-1/2 jn-left-1/2 jn-bg-jobnet-green
-      hover:jn-bg-jobnet-light-green ${
-        !isButtonVisible ? "-jn-translate-y-full" : null
-      }`}
+      ${!isButtonBusy ? "hover:jn-bg-jobnet-light-green" : null}
+      ${!isButtonVisible ? "-jn-translate-y-full" : null}`}
         onClick={onApply}>
-        Ansøg med JobNemt
+        {isButtonBusy ? "Skriver ansøgning baseret på dit CV..." : btnText}
       </button>
     </>
   )

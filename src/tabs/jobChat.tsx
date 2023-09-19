@@ -13,59 +13,76 @@ import { useEffect, useState } from "react"
 
 import { useStorage } from "@plasmohq/storage/hook"
 
-import { createInitialPrompt, useChadMVP } from "~services/useOpenAI"
+import { useChadMVP, type ApiMessage } from "~services/useOpenAI"
+
+const TryParseJSON = (jsonString: string) => {
+  try {
+    return JSON.parse(jsonString)
+  } catch (e) {
+    console.warn("Invalid JSON in system message: ", jsonString)
+    return jsonString
+  }
+}
 
 function ChatApp() {
-  const [API_KEY] = useStorage("APIKey", "")
-  const [jobposting] = useStorage("job-description", "")
-  const [cv] = useStorage("user-cv", "")
-  const { sendMessage } = useChadMVP(API_KEY)
-
+  // const [API_KEY] = useStorage("APIKey")
+  const [initial_message] = useStorage<ApiMessage>("system-messeages")
+  const { sendMessage } = useChadMVP()
   const [messages, setMessages] = useState<MessageModel[]>()
   const [isTyping, setIsTyping] = useState<boolean>(true)
 
   useEffect(() => {
-    const init = async () => {
-      await sendMessage({
-        role: "system",
-        content: createInitialPrompt(cv, jobposting)
-      }).then((initialMessage) => {
-        setMessages([
-          {
-            direction: "incoming",
-            message: initialMessage,
-            position: "first",
-            sender: "ChatGPT",
-            sentTime: "just now"
-          }
-        ])
-        setIsTyping(false)
-      })
+    if (initial_message) {
+      let first_message = TryParseJSON(initial_message.content)
+      setMessages([
+        {
+          message: first_message.cover_letter
+            ? first_message.cover_letter
+            : first_message,
+          direction: "incoming",
+          sender: "ChatGPT",
+          position: "first"
+        }
+      ])
+      setIsTyping(false)
     }
-    init()
-  }, [])
+  }, [initial_message])
 
   const handleSend = async (message: string) => {
-    const newMessage: MessageModel = {
-      message,
-      direction: "outgoing",
-      sender: "user",
-      position: "last"
-    }
-
-    const newMessages = [...messages, newMessage]
-
-    setMessages(newMessages)
-    setIsTyping(true)
-    await sendMessage({ role: "user", content: message }).then((response) => {
-      const newMessage: MessageModel = {
-        message: response,
-        direction: "incoming",
-        sender: "ChatGPT",
+    setMessages([
+      ...messages,
+      {
+        message,
+        direction: "outgoing",
+        sender: "user",
         position: "last"
       }
-      const newMessages = [...messages, newMessage]
-      setMessages(newMessages)
+    ])
+    setIsTyping(true)
+
+    const messagesToSend: ApiMessage[] = messages.map((m) => {
+      return {
+        content: m.message,
+        role:
+          m.sender != "user" && m.sender != "assistant" ? "system" : m.sender
+      }
+    })
+
+    await sendMessage([
+      ...messagesToSend,
+      { content: message, role: "user" }
+    ]).then((response) => {
+      console.log("Msg state before res: ", messages)
+      setMessages([
+        ...messages,
+        {
+          message: response,
+          direction: "incoming",
+          sender: "assistant",
+          position: "last"
+        }
+      ])
+      console.log("Msg state after res: ", messages)
       setIsTyping(false)
     })
   }

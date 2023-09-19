@@ -1,3 +1,10 @@
+import { DA_INITIAL_PROMPT, DA_SYSTEM_MESSAGE } from "constants/prompts"
+import {
+  createInitialPrompt,
+  PostPrompt,
+  type ApiMessage
+} from "src/services/useOpenAI"
+
 import type { PlasmoMessaging } from "@plasmohq/messaging"
 import { Storage } from "@plasmohq/storage"
 
@@ -16,7 +23,12 @@ const handler: PlasmoMessaging.MessageHandler = async (req, res) => {
     console.error(req.body)
     return
   }
-  storage.set("job-description", req.body)
+
+  const api_key = await storage.get("APIKey")
+  if (!api_key) {
+    res.send({ error: "missing_api_key" })
+    return
+  }
 
   const userCV = await storage.get("user-cv")
   if (!userCV) {
@@ -24,8 +36,30 @@ const handler: PlasmoMessaging.MessageHandler = async (req, res) => {
     return
   }
 
-  goToChat()
+  // Fetch system prompt
+  // Generate initial prompt
+  const messages: ApiMessage[] = [
+    {
+      role: "system",
+      content: DA_SYSTEM_MESSAGE
+    },
+    {
+      role: "system",
+      content: createInitialPrompt(userCV, req.body)
+    }
+  ]
+
+  // Send initial prompt to API
+  const response = await PostPrompt(messages, api_key)
+
+  // Save response to storage and go to chat
+  // messages.push({ role: "assistant", content: response })
+  await storage.set("system-messeages", { role: "ChatGPT", content: response })
+
   res.send({ status: "success" })
+  setTimeout(() => {
+    goToChat()
+  }, 3000)
   return
 }
 
