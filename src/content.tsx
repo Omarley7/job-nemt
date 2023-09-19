@@ -45,7 +45,10 @@ const ApplyButton = () => {
         name: "openChat",
         body: { jobDescription }
       })
-      console.log(res)
+      if (res?.error == "missing_cv") {
+        alert("Du skal uploade dit CV før du kan ansøge med JobNemt")
+        sendToBackground({ name: "openCVmanager" })
+      }
     } else {
       console.error("No job description found")
     }

@@ -18,11 +18,7 @@ const handler: PlasmoMessaging.MessageHandler = async (req, res) => {
 
   const userCV = await storage.get("user-cv")
   if (!userCV) {
-    // Prompt to upload CV
-    chrome.tabs.create({
-      url: "chrome-extension://" + chrome.runtime.id + "/tabs/uploadCV.html"
-    })
-    res.send({ status: "missing_cv" })
+    res.send({ error: "missing_cv" })
     return
   }
 
