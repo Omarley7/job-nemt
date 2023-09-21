@@ -17,11 +17,45 @@ import { useChadMVP, type ApiMessage } from "~services/useOpenAI"
 
 const TryParseJSON = (jsonString: string) => {
   try {
-    return JSON.parse(jsonString)
+    // replace [ with \[ to avoid errors
+    const prepedJSONstring = jsonString.replace("[", "\\[").replace("]", "\\]")
+    return JSON.parse(prepedJSONstring)
   } catch (e) {
     console.warn("Invalid JSON in system message: ", jsonString)
     return jsonString
   }
+}
+
+const addMessage = (
+  setter: React.Dispatch<React.SetStateAction<MessageModel[]>>,
+  message: string,
+  direction: "outgoing" | "incoming"
+) => {
+  setter((prevMessages) => {
+    if (!prevMessages) {
+      return [
+        {
+          message: message,
+          direction: direction,
+          sender: direction === "incoming" ? "user" : "assistant",
+          position: "first"
+        }
+      ]
+    }
+    const updatedMessages = [...prevMessages]
+
+    if (updatedMessages.length > 1) {
+      updatedMessages[updatedMessages.length - 1].position = "single"
+    }
+
+    updatedMessages.push({
+      message: message,
+      direction: direction,
+      sender: direction === "incoming" ? "user" : "assistant",
+      position: "last"
+    })
+    return updatedMessages
+  })
 }
 
 function ChatApp() {
@@ -34,33 +68,16 @@ function ChatApp() {
   useEffect(() => {
     if (initial_message) {
       let first_message = TryParseJSON(initial_message.content)
-      setMessages([
-        {
-          message: first_message.cover_letter
-            ? first_message.cover_letter
-            : first_message,
-          direction: "incoming",
-          sender: "ChatGPT",
-          position: "first"
-        }
-      ])
+      addMessage(setMessages, first_message, "incoming")
       setIsTyping(false)
     }
   }, [initial_message])
 
   const handleSend = async (message: string) => {
-    setMessages([
-      ...messages,
-      {
-        message,
-        direction: "outgoing",
-        sender: "user",
-        position: "last"
-      }
-    ])
     setIsTyping(true)
 
-    const messagesToSend: ApiMessage[] = messages.map((m) => {
+    // Convert previous messages to API format
+    const messageHistory: ApiMessage[] = messages.map((m) => {
       return {
         content: m.message,
         role:
@@ -68,23 +85,14 @@ function ChatApp() {
       }
     })
 
-    await sendMessage([
-      ...messagesToSend,
+    addMessage(setMessages, message, "outgoing")
+    const response = await sendMessage([
+      ...messageHistory,
       { content: message, role: "user" }
-    ]).then((response) => {
-      console.log("Msg state before res: ", messages)
-      setMessages([
-        ...messages,
-        {
-          message: response,
-          direction: "incoming",
-          sender: "assistant",
-          position: "last"
-        }
-      ])
-      console.log("Msg state after res: ", messages)
-      setIsTyping(false)
-    })
+    ])
+
+    addMessage(setMessages, response, "incoming")
+    setIsTyping(false)
   }
 
   return (
