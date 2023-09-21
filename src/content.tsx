@@ -22,7 +22,7 @@ const getJobDescription = () => {
 const ApplyButton = () => {
   const [isButtonVisible, setIsButtonVisible] = useState(true)
   const [isButtonBusy, setIsButtonBusy] = useState(false)
-  let btnText = "Ansøg med JobNemt"
+  const [buttonText, setButtonText] = useState("Ansøg med JobNemt")
 
   useEffect(() => {
     const handleMouseMove = (e) => {
@@ -36,41 +36,29 @@ const ApplyButton = () => {
     window.addEventListener("mousemove", handleMouseMove)
 
     return () => {
-      // Cleanup
       window.removeEventListener("mousemove", handleMouseMove)
     }
   }, [])
 
-  const onApply = async () => {
-    const jobDescription = getJobDescription()
-    if (jobDescription) {
-      setIsButtonBusy(true)
-      const res = await sendToBackground({
-        name: "openChat",
-        body: jobDescription.innerText
-      })
-      if (res?.error) {
-        HandleError(res.error)
-      } else {
-        btnText = "Done!" // Needs to be a state variable
-        setTimeout(() => {
-          btnText = "Ansøg med JobNemt"
-        }, 3000)
-      }
-      setIsButtonBusy(false)
-    } else {
-      console.error("No job description found")
-    }
+  const working = () => {
+    setIsButtonBusy(true)
+    setButtonText("Skriver ansøgning baseret på dit CV...")
   }
+
+  const done = (res) => {
+    if (res?.error) {
+      HandleError(res.error)
+    } else {
+      setButtonText("Done!")
+      setTimeout(() => {
+        setButtonText("Ansøg med JobNemt")
+      }, 3000)
+    }
+    setIsButtonBusy(false)
+  }
+
   return (
     <>
-      {/* isButtonBusy ? (
-        <div
-          className="jn-fixed jn-top-0 jn-left-0 jn-w-screen jn-h-screen
-        jn-bg-black jn-opacity-50 jn-z-50
-        jn-cursor-progress
-        "></div>
-      ) : null*/}
       <button
         disabled={isButtonBusy}
         className={`jn-text-2xl jn-p-4 jn-rounded-md jn-font-bold jn-m-2
@@ -79,14 +67,29 @@ const ApplyButton = () => {
       jn-fixed -jn-translate-x-1/2 jn-left-1/2 jn-bg-jobnet-green
       ${!isButtonBusy ? "hover:jn-bg-jobnet-light-green" : null}
       ${!isButtonVisible ? "-jn-translate-y-full" : null}`}
-        onClick={onApply}>
-        {isButtonBusy ? "Skriver ansøgning baseret på dit CV..." : btnText}
+        onClick={() => onApply(working, done)}>
+        {buttonText}
       </button>
     </>
   )
 }
 
 export default ApplyButton
+
+const onApply = async (handleWorking: Function, handleDone: Function) => {
+  const jobDescription = getJobDescription()
+  if (jobDescription) {
+    handleWorking()
+    const res = await sendToBackground({
+      name: "openChat",
+      body: jobDescription.innerText
+    })
+    handleDone()
+  } else {
+    console.error("No job description found")
+  }
+}
+
 function HandleError(error: string) {
   if (error === "missing_cv") {
     alert("Du skal uploade dit CV før du kan ansøge med JobNemt")
