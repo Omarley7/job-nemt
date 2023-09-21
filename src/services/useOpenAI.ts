@@ -1,3 +1,4 @@
+import { error } from "console"
 import { DA_INITIAL_PROMPT } from "constants/prompts"
 
 import { useStorage } from "@plasmohq/storage/hook"
@@ -51,29 +52,28 @@ export const PostPrompt = async (
     messages: messages
   }
 
-  try {
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${api_key}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(apiRequestBody)
-    })
+  const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${api_key}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(apiRequestBody)
+  })
 
-    // Check if the response status is not in the success range.
-    if (!response.ok) {
-      // Fetch the error message from the response, or use a default message.
-      const errorData = await response.json()
-      const errorMessage = errorData?.error?.message || "Unknown error occurred"
-      throw new Error(`API Request Failed: ${errorMessage}`)
-    }
-
+  if (response.ok) {
     const data: ApiResponseBody = await response.json()
-
     return data.choices[0].message.content
-  } catch (error) {
-    console.error("Error while posting prompt:", error)
-    throw error // Propagate the error, so callers can also handle it if they wish.
+  }
+
+  const errorData = await response.json()
+  if (response.status === 401) {
+    console.error(`Fetch returned: 401`)
+    console.error(errorData.error.message)
+    if (errorData.error.code === "invalid_api_key") {
+      throw new Error("Invalid API key")
+    } else {
+      throw new Error("Unknown error occurred")
+    }
   }
 }

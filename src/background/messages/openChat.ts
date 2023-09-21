@@ -50,7 +50,18 @@ const handler: PlasmoMessaging.MessageHandler = async (req, res) => {
   ]
 
   // Send initial prompt to API
-  const response = await PostPrompt(messages, api_key)
+  let response = ""
+  try {
+    response = await PostPrompt(messages, api_key)
+  } catch (e) {
+    if (e.message.includes("Invalid API key")) {
+      res.send({ error: "invalid_api_key" })
+    } else {
+      console.error(e)
+      res.send({ error: "unknown_error" })
+    }
+    return
+  }
 
   // Save response to storage and go to chat
   // messages.push({ role: "assistant", content: response })
@@ -59,7 +70,7 @@ const handler: PlasmoMessaging.MessageHandler = async (req, res) => {
   res.send({ status: "success" })
   setTimeout(() => {
     goToChat()
-  }, 3000)
+  }, 2000)
   return
 }
 

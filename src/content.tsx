@@ -49,15 +49,15 @@ const ApplyButton = () => {
         name: "openChat",
         body: jobDescription.innerText
       })
-      if (res?.error == "missing_cv") {
-        alert("Du skal uploade dit CV før du kan ansøge med JobNemt")
-        sendToBackground({ name: "openCVmanager" })
+      if (res?.error) {
+        HandleError(res.error)
+      } else {
+        btnText = "Done!" // Needs to be a state variable
+        setTimeout(() => {
+          btnText = "Ansøg med JobNemt"
+        }, 3000)
       }
       setIsButtonBusy(false)
-      btnText = "Done!"
-      setTimeout(() => {
-        btnText = "Ansøg med JobNemt"
-      }, 3000)
     } else {
       console.error("No job description found")
     }
@@ -87,3 +87,20 @@ const ApplyButton = () => {
 }
 
 export default ApplyButton
+function HandleError(error: string) {
+  if (error === "missing_cv") {
+    alert("Du skal uploade dit CV før du kan ansøge med JobNemt")
+    sendToBackground({ name: "openCVmanager" })
+  } else if (error === "missing_api_key") {
+    alert("Du skal indtaste din API nøgle før du kan ansøge med JobNemt")
+    sendToBackground({ name: "openSettings" })
+  } else if (error === "invalid_api_key") {
+    alert(
+      "Der er er muligvis en fejl med din API nøgle. Prøv at indtaste den igen. Den starter med 'sk-'"
+    )
+    sendToBackground({ name: "openSettings" })
+  } else {
+    console.error(error)
+    alert("Der skete en ukendt fejl. Prøv igen senere")
+  }
+}
