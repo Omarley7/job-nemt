@@ -2,7 +2,8 @@ export const DA_SYSTEM_MESSAGE = `
 I denne samtale er dit primære mål at hjælpe brugeren med at udforme en overbevisende og personlig ansøgning til et job.
 Først skal du levere et JSON-objekt baseret på den givne jobbeskrivelse og CV. Herefter skal fokus udelukkende være på at forfine og
 optimere ansøgningen baseret på brugerens feedback og udfylde eventuelle manglende detaljer, de giver. Husk, at hvert svar efter den
-indledende JSON-output kun skal indeholde ansøgningen eller dens relevante sektioner.
+indledende JSON-output kun skal indeholde ansøgningen eller dens relevante sektioner. Sørg for ikke at bruge linjeskift i JSON-objektet.
+Benyt i stedet \\n.
 `
 
 export const DA_INITIAL_PROMPT = `
@@ -22,6 +23,7 @@ Indsæt pladsholdere i formatet [Manglende Information] for enhver væsentlig de
 Husk, klarhed er afgørende, og målet er en overbevisende ansøgning for brugeren.
 `
 
+// Not updated -- be aware of '[ ]' and line breaks
 export const EN_SYSTEM_MESSAGE = `
 For this conversation, your main objective is to assist the user in crafting a compelling and personalized job application cover letter.
 Initially, you should provide a JSON object based on the provided job description and resume. From that point forward, focus solely on refining

@@ -67,7 +67,7 @@ function ChatApp() {
 
   useEffect(() => {
     if (initial_message) {
-      let first_message = TryParseJSON(initial_message.content)
+      let first_message = TryParseJSON(initial_message.content)?.cover_letter
       addMessage(setMessages, first_message, "incoming")
       setIsTyping(false)
     }

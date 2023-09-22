@@ -1,8 +1,8 @@
 {
   "name": "job-nemt",
   "displayName": "Job nemt",
-  "version": "0.0.1",
-  "description": "Gør Jobnet nemt. Bruger ChatGPT til at lave dine ansøgningsudkast og udfylde jobloggen på ingen tid.",
+  "version": "0.1.0",
+  "description": "Gør Jobnet.dk nemt. Lad ChatGPT til at lave dine ansøgningsudkast baseret på dit CV og annoncen.",
   "author": "Omar Suleiman",
   "scripts": {
     "dev": "plasmo dev",
@@ -31,8 +31,6 @@
     "typescript": "5.2.2"
   },
   "manifest": {
-    "host_permissions": [
-      "https://*/*"
-    ]
+    "host_permissions": []
   }
 }

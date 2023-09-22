@@ -42,7 +42,9 @@ const ApplyButton = () => {
 
   const working = () => {
     setIsButtonBusy(true)
-    setButtonText("Skriver ansøgning baseret på dit CV...")
+    setButtonText(
+      "Skriver ansøgning baseret på dit CV og stillingen. Det kan tage op til 2 minutter. En ny fane åbner automatisk, du kan forsætte dit arbejde i mellemtiden. (Du kan lukke denne fane)"
+    )
   }
 
   const done = (res) => {
