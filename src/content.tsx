@@ -20,10 +20,13 @@ const getJobDescription = () => {
 }
 
 const ApplyButton = () => {
+  const stdButtonText = "Lav en personlig ansøgning med JobNemt!"
+  const workingBtnText =
+    "Skriver ansøgning baseret på dit CV og stillingen. Det kan tage op til 2 minutter. En ny fane åbner automatisk, du kan forsætte dit arbejde i mellemtiden. (Du kan godt lukke denne fane)"
   const [isButtonVisible, setIsButtonVisible] = useState(false)
   const [isButtonBusy, setIsButtonBusy] = useState(false)
   const [taskDone, setTaskDone] = useState(false)
-  const [buttonText, setButtonText] = useState("Ansøg med JobNemt")
+  const [buttonText, setButtonText] = useState(stdButtonText)
   const [countDown, setCountDown] = useState<number>(new_tab_delay_s)
 
   useEffect(() => {
@@ -46,21 +49,21 @@ const ApplyButton = () => {
     if (taskDone) {
       setButtonText(`Done! (${countDown})`)
     } else {
-      setButtonText("Ansøg med JobNemt")
+      setButtonText(stdButtonText)
       setIsButtonBusy(false)
     }
   }, [countDown])
 
   const working = () => {
     setIsButtonBusy(true)
-    setButtonText(
-      "Skriver ansøgning baseret på dit CV og stillingen. Det kan tage op til 2 minutter. En ny fane åbner automatisk, du kan forsætte dit arbejde i mellemtiden. (Du kan godt lukke denne fane)"
-    )
+    setButtonText(workingBtnText)
   }
 
   const done = (res) => {
     if (res?.error) {
       HandleError(res.error)
+      setButtonText(stdButtonText)
+      setIsButtonBusy(false)
     } else {
       setTaskDone(true)
       setButtonText(`Done! (${countDown})`) // Update buttonText immediately
@@ -107,7 +110,7 @@ const onApply = async (handleWorking: Function, handleDone: Function) => {
       name: "openChat",
       body: jobDescription.innerText
     })
-    handleDone()
+    handleDone(res)
   } else {
     console.error("No job description found")
   }
