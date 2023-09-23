@@ -1,4 +1,3 @@
-import { error } from "console"
 import { DA_INITIAL_PROMPT } from "constants/prompts"
 
 import { useStorage } from "@plasmohq/storage/hook"
@@ -34,6 +33,12 @@ export const useChadMVP = () => {
 
 export interface ApiResponseBody {
   choices: { message: { content: string } }[]
+  usage: {
+    prompt_tokens: number
+    completion_tokens: number
+    total_tokens: number
+  }
+  model: string
 }
 
 /** Send a message to the API and returns the latest message.
@@ -47,10 +52,11 @@ export const PostPrompt = async (
   messages: ApiMessage[],
   api_key: string
 ): Promise<string> => {
-  const apiRequestBody = {
+  const apiRequestBody: { model: string; messages: ApiMessage[] } = {
     model: "gpt-3.5-turbo",
-    messages: messages
+    messages: messages //[{ content: "hi", role: "user" }]
   }
+  // return "hi" -- For testing
 
   const response = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
@@ -63,6 +69,7 @@ export const PostPrompt = async (
 
   if (response.ok) {
     const data: ApiResponseBody = await response.json()
+    printPrice(data)
     return data.choices[0].message.content
   }
 
@@ -76,4 +83,23 @@ export const PostPrompt = async (
       throw new Error("Unknown error occurred")
     }
   }
+}
+
+const printPrice = (data: ApiResponseBody) => {
+  const input_token_price =
+    (data.model.includes("gpt-4") ? 0.03 : 0.0015) / 1000
+  const output_token_price =
+    (data.model.includes("gpt-4") ? 0.06 : 0.002) / 1000
+  const prompt_price = input_token_price * data.usage.prompt_tokens
+  const completion_price = output_token_price * data.usage.completion_tokens
+
+  console.info([
+    {
+      "Prompt price USD": prompt_price,
+      "Completion price USD": completion_price,
+      "Total in USD": prompt_price + completion_price,
+      "Total in DKK": (prompt_price + completion_price) * 7,
+      Model: data.model
+    }
+  ])
 }

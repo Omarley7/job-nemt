@@ -18,10 +18,14 @@ import { useChadMVP, type ApiMessage } from "~services/useOpenAI"
 const TryParseJSON = (jsonString: string) => {
   try {
     // replace [ with \[ to avoid errors
-    const prepedJSONstring = jsonString.replace("[", "\\[").replace("]", "\\]")
+    const prepedJSONstring = jsonString
+      .toString()
+      .replace("[", "[")
+      .replace("]", "]")
     return JSON.parse(prepedJSONstring)
   } catch (e) {
     console.warn("Invalid JSON in system message: ", jsonString)
+    console.error(e)
     return jsonString
   }
 }
@@ -59,7 +63,6 @@ const addMessage = (
 }
 
 function ChatApp() {
-  // const [API_KEY] = useStorage("APIKey")
   const [initial_message] = useStorage<ApiMessage>("system-messeages")
   const { sendMessage } = useChadMVP()
   const [messages, setMessages] = useState<MessageModel[]>()
@@ -67,7 +70,11 @@ function ChatApp() {
 
   useEffect(() => {
     if (initial_message) {
-      let first_message = TryParseJSON(initial_message.content)?.cover_letter
+      let first_message = TryParseJSON(initial_message.content)
+      // If parsing was successful, use the cover letter
+      if (first_message?.cover_letter) {
+        first_message = first_message.cover_letter
+      }
       addMessage(setMessages, first_message, "incoming")
       setIsTyping(false)
     }

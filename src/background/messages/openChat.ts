@@ -1,4 +1,5 @@
-import { DA_INITIAL_PROMPT, DA_SYSTEM_MESSAGE } from "constants/prompts"
+import { new_tab_delay_s } from "constants/delays"
+import { DA_SYSTEM_MESSAGE } from "constants/prompts"
 import {
   createInitialPrompt,
   PostPrompt,
@@ -70,7 +71,7 @@ const handler: PlasmoMessaging.MessageHandler = async (req, res) => {
   res.send({ status: "success" })
   setTimeout(() => {
     goToChat()
-  }, 2000)
+  }, new_tab_delay_s * 1000)
   return
 }
 
