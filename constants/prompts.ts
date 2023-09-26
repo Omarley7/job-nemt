@@ -1,27 +1,8 @@
 export const DA_SYSTEM_MESSAGE = `
 I denne samtale er dit primære mål at hjælpe brugeren med at udforme en overbevisende og personlig ansøgning til et job.
-Først skal du levere et JSON-objekt baseret på den givne jobbeskrivelse og CV. Herefter skal fokus udelukkende være på at forfine og
-optimere ansøgningen baseret på brugerens feedback og udfylde eventuelle manglende detaljer, de giver. Husk, at hvert svar efter den
-indledende JSON-output kun skal indeholde ansøgningen eller dens relevante sektioner. Sørg for ikke at bruge linjeskift i JSON-objektet.
-Benyt i stedet \\n.
-`
-
-export const DA_INITIAL_PROMPT = `
-Givet den medfølgende jobbeskrivelse og CV tekst:
-
-1. Uddrag eventuelle e-mail- eller kontaktoplysninger fra jobbeskrivelsen.
-2. Identificer brugerens navn fra CV-teksten.
-3. Udarbejd en personlig ansøgning skræddersyet til jobbeskrivelsen og CV'et.
-Indsæt pladsholdere i formatet [Manglende Information] for enhver væsentlig detalje, der ikke er til stede.
-4. Præsenter dine resultater som et JSON-objekt:
-
-{
-  "contact_email": "<e-mail fra jobopslaget>",
-  "cover_letter": "<udkast til ansøgning>"
-}
-
-Husk, klarhed er afgørende, og målet er en overbevisende ansøgning for brugeren.
-`
+Først producere et grundigt udkast af en ansøgning baseret på brugerns CV. Herefter skal fokus udelukkende være på at forfine og
+optimere ansøgningen baseret på brugerens feedback og udfylde eventuelle manglende detaljer de giver. Indsæt pladsholdere i
+formatet [Manglende Information] for enhver væsentlig detalje, der ikke er til stede.`
 
 // Not updated -- be aware of '[ ]' and line breaks
 export const EN_SYSTEM_MESSAGE = `

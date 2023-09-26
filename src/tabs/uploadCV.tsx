@@ -2,10 +2,14 @@ import { getDocument, GlobalWorkerOptions } from "pdfjs-dist"
 
 import "~style.css"
 
+import { Storage } from "@plasmohq/storage"
 import { useStorage } from "@plasmohq/storage/hook"
 
 function UploadCVPage() {
-  const [userCV, setUserCV] = useStorage("user-cv")
+  const [userCV, setUserCV] = useStorage({
+    key: "user-cv",
+    instance: new Storage({ area: "local" })
+  })
 
   const handleCVUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files[0]

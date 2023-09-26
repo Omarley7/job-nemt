@@ -1,5 +1,3 @@
-import { DA_INITIAL_PROMPT } from "constants/prompts"
-
 import { useStorage } from "@plasmohq/storage/hook"
 
 export interface ApiMessage {
@@ -11,7 +9,7 @@ export const createInitialPrompt = (
   cv: string,
   job_description: string
 ): string => {
-  return `${DA_INITIAL_PROMPT} \n *Job beskrivelse:* ${job_description} \n *User resumé: * ${cv}`
+  return `*Job beskrivelse:* ${job_description} \n *User resumé: * ${cv}`
 }
 
 /** Send a message to the API and returns the latest message.
@@ -33,12 +31,13 @@ export const useChadMVP = () => {
 
 export interface ApiResponseBody {
   choices: { message: { content: string } }[]
-  usage: {
-    prompt_tokens: number
-    completion_tokens: number
-    total_tokens: number
-  }
   model: string
+}
+
+interface apiRequestBody {
+  model: string
+  messages: ApiMessage[]
+  stream: boolean
 }
 
 /** Send a message to the API and returns the latest message.
@@ -51,55 +50,32 @@ export interface ApiResponseBody {
 export const PostPrompt = async (
   messages: ApiMessage[],
   api_key: string
-): Promise<string> => {
-  const apiRequestBody: { model: string; messages: ApiMessage[] } = {
+): Promise<ReadableStreamDefaultReader<Uint8Array>> => {
+  const body: apiRequestBody = {
     model: "gpt-3.5-turbo",
-    messages: messages //[{ content: "hi", role: "user" }]
+    messages: messages, //[{ content: "hi", role: "user" }]
+    stream: true
   }
   // return "hi" -- For testing
-
   const response = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${api_key}`,
       "Content-Type": "application/json"
     },
-    body: JSON.stringify(apiRequestBody)
+    body: JSON.stringify(body)
   })
 
-  if (response.ok) {
-    const data: ApiResponseBody = await response.json()
-    printPrice(data)
-    return data.choices[0].message.content
-  }
-
-  const errorData = await response.json()
-  if (response.status === 401) {
-    console.error(`Fetch returned: 401`)
+  if (!response.ok) {
+    const errorData = await response.json()
+    console.error(`Fetch returned: ${response.status}`)
     console.error(errorData.error.message)
-    if (errorData.error.code === "invalid_api_key") {
-      throw new Error("Invalid API key")
-    } else {
-      throw new Error("Unknown error occurred")
-    }
+    throw new Error(
+      errorData.error.code === "invalid_api_key"
+        ? "Invalid API key"
+        : "Unknown error occurred"
+    ) // This is bullshit
   }
-}
 
-const printPrice = (data: ApiResponseBody) => {
-  const input_token_price =
-    (data.model.includes("gpt-4") ? 0.03 : 0.0015) / 1000
-  const output_token_price =
-    (data.model.includes("gpt-4") ? 0.06 : 0.002) / 1000
-  const prompt_price = input_token_price * data.usage.prompt_tokens
-  const completion_price = output_token_price * data.usage.completion_tokens
-
-  console.info([
-    {
-      "Prompt price USD": prompt_price,
-      "Completion price USD": completion_price,
-      "Total in USD": prompt_price + completion_price,
-      "Total in DKK": (prompt_price + completion_price) * 7,
-      Model: data.model
-    }
-  ])
+  return response.body!.getReader()
 }

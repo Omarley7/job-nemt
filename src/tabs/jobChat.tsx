@@ -1,6 +1,5 @@
 import "@chatscope/chat-ui-kit-styles/dist/default/styles.min.css"
 
-import type { MessageModel } from "@chatscope/chat-ui-kit-react"
 import {
   ChatContainer,
   MainContainer,
@@ -11,95 +10,48 @@ import {
 } from "@chatscope/chat-ui-kit-react"
 import { useEffect, useState } from "react"
 
+import { Storage } from "@plasmohq/storage"
 import { useStorage } from "@plasmohq/storage/hook"
 
 import { useChadMVP, type ApiMessage } from "~services/useOpenAI"
-
-const TryParseJSON = (jsonString: string) => {
-  try {
-    // replace [ with \[ to avoid errors
-    const prepedJSONstring = jsonString
-      .toString()
-      .replace("[", "[")
-      .replace("]", "]")
-    return JSON.parse(prepedJSONstring)
-  } catch (e) {
-    console.warn("Invalid JSON in system message: ", jsonString)
-    console.error(e)
-    return jsonString
-  }
-}
-
-const addMessage = (
-  setter: React.Dispatch<React.SetStateAction<MessageModel[]>>,
-  message: string,
-  direction: "outgoing" | "incoming"
-) => {
-  setter((prevMessages) => {
-    if (!prevMessages) {
-      return [
-        {
-          message: message,
-          direction: direction,
-          sender: direction === "incoming" ? "user" : "assistant",
-          position: "first"
-        }
-      ]
-    }
-    const updatedMessages = [...prevMessages]
-
-    if (updatedMessages.length > 1) {
-      updatedMessages[updatedMessages.length - 1].position = "single"
-    }
-
-    updatedMessages.push({
-      message: message,
-      direction: direction,
-      sender: direction === "incoming" ? "user" : "assistant",
-      position: "last"
-    })
-    return updatedMessages
-  })
-}
+import { useChatMessages } from "~tabs/chat_services/messages"
 
 function ChatApp() {
-  const [initial_message] = useStorage<ApiMessage>("system-messeages")
+  // Could be "chatHistory" and recide in the useChatMessages hook
+  const [message_history, setMessage_history] = useStorage<ApiMessage[]>({
+    key: "message-history",
+    instance: new Storage({ area: "local" })
+  })
+  // The sending of messages should be handled by the useChatMessages hook
   const { sendMessage } = useChadMVP()
-  const [messages, setMessages] = useState<MessageModel[]>()
-  const [isTyping, setIsTyping] = useState<boolean>(true)
+  // This could be named "messagesToDisplay" to keep it clear that it's not the same as the chatHistory
+  const [messages, displayMessage, streamResponse] = useChatMessages()
+  const [isTyping, setIsTyping] = useState<boolean>(false)
 
   useEffect(() => {
-    if (initial_message) {
-      let first_message = TryParseJSON(initial_message.content)
-      // If parsing was successful, use the cover letter
-      if (first_message?.cover_letter) {
-        first_message = first_message.cover_letter
-      }
-      addMessage(setMessages, first_message, "incoming")
-      setIsTyping(false)
+    if (message_history && !isTyping) {
+      setIsTyping(true)
+      ;(async () => {
+        const reader = await sendMessage(message_history)
+        displayMessage("", "incoming")
+        await streamResponse(reader)
+        setIsTyping(false)
+      })()
+    } else {
     }
-  }, [initial_message])
+  }, [message_history])
 
   const handleSend = async (message: string) => {
-    setIsTyping(true)
-
-    // Convert previous messages to API format
-    const messageHistory: ApiMessage[] = messages.map((m) => {
-      return {
-        content: m.message,
-        role:
-          m.sender != "user" && m.sender != "assistant" ? "system" : m.sender
-      }
-    })
-
-    addMessage(setMessages, message, "outgoing")
-    const response = await sendMessage([
-      ...messageHistory,
+    // In the update, this should be as simple as "sendMessage(message)" from the useChatMessages hook
+    setMessage_history((prevMessageHistory) => [
+      ...prevMessageHistory,
+      {
+        content: messages[messages.length - 1].message,
+        role: "assistant"
+      },
       { content: message, role: "user" }
     ])
-
-    addMessage(setMessages, response, "incoming")
-    setIsTyping(false)
+    displayMessage(message, "outgoing")
   }
 
   return (
