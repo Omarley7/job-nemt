@@ -37,10 +37,14 @@ const ApplyButton = () => {
         setIsButtonVisible(true)
       }
     }
+    setIsButtonVisible(true)
 
-    window.addEventListener("mousemove", handleMouseMove)
+    const timer = setTimeout(() => {
+      window.addEventListener("mousemove", handleMouseMove)
+    }, 2000)
 
     return () => {
+      clearTimeout(timer)
       window.removeEventListener("mousemove", handleMouseMove)
     }
   }, [])
