@@ -16,6 +16,8 @@ import { useStorage } from "@plasmohq/storage/hook"
 import { useChadMVP, type ApiMessage } from "~services/useOpenAI"
 import { useChatMessages } from "~tabs/chat_services/messages"
 
+// TODO: Add onClose to clear the message history
+
 function ChatApp() {
   // Could be "chatHistory" and recide in the useChatMessages hook
   const [message_history, setMessage_history] = useStorage<ApiMessage[]>({
