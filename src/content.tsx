@@ -1,4 +1,3 @@
-import { new_tab_delay_s } from "constants/delays"
 import cssText from "data-text:~style.css"
 import type { PlasmoCSConfig } from "plasmo"
 import { useEffect, useState } from "react"
@@ -15,89 +14,41 @@ export const getStyle = () => {
   return style
 }
 
-const getJobDescription = () => {
+const new_tab_delay_s = 3
+const stdButtonText = "Lav en personlig ansøgning med JobNemt!"
+
+function getJobDescription() {
   return document.querySelector("section.job-description-col") as HTMLElement
 }
 
-const ApplyButton = () => {
-  const stdButtonText = "Lav en personlig ansøgning med JobNemt!"
-  const workingBtnText =
-    "Skriver ansøgning baseret på dit CV og stillingen. Det kan tage op til 2 minutter. En ny fane åbner automatisk, du kan forsætte dit arbejde i mellemtiden. (Du kan godt lukke denne fane)"
+function ApplyButton() {
   const [isButtonVisible, setIsButtonVisible] = useState(false)
   const [isButtonBusy, setIsButtonBusy] = useState(false)
-  const [taskDone, setTaskDone] = useState(false)
   const [buttonText, setButtonText] = useState(stdButtonText)
   const [countDown, setCountDown] = useState<number>(new_tab_delay_s)
 
   useEffect(() => {
-    const handleMouseMove = (e) => {
-      if (e.clientY > window.innerHeight * 0.3) {
-        setIsButtonVisible(false)
-      } else {
-        setIsButtonVisible(true)
-      }
-    }
-    setIsButtonVisible(true)
-
-    const timer = setTimeout(() => {
-      window.addEventListener("mousemove", handleMouseMove)
-    }, 2000)
-
-    return () => {
-      clearTimeout(timer)
-      window.removeEventListener("mousemove", handleMouseMove)
-    }
+    ButtonVisibiltyEffect(setIsButtonVisible)
   }, [])
 
   useEffect(() => {
-    if (taskDone) {
-      setButtonText(`Done! (${countDown})`)
-    } else {
-      setButtonText(stdButtonText)
-      setIsButtonBusy(false)
-    }
-  }, [countDown])
-
-  const working = () => {
-    setIsButtonBusy(true)
-    setButtonText(workingBtnText)
-  }
-
-  const done = (res) => {
-    if (res?.error) {
-      HandleError(res.error)
-      setButtonText(stdButtonText)
-      setIsButtonBusy(false)
-    } else {
-      setTaskDone(true)
-      setButtonText(`Done! (${countDown})`) // Update buttonText immediately
-      let intervalId
-      setInterval(() => {
-        setCountDown((prevCount) => {
-          if (prevCount > 0) {
-            return prevCount - 1
-          } else {
-            setTaskDone(false)
-            clearInterval(intervalId)
-            return new_tab_delay_s
-          }
-        })
-      }, 1000)
-    }
-  }
+    setButtonText(
+      isButtonBusy ? `Åbner ny fane... (${countDown})` : stdButtonText
+    )
+  }, [countDown, isButtonBusy])
 
   return (
     <>
       <button
         disabled={isButtonBusy}
         className={`
-          jn-text-2xl jn-p-4 jn-rounded-md jn-font-bold jn-m-2
-          jn-transition-all jn-duration-400 jn-ease-in-out
+        jn-text-2xl jn-p-4 jn-rounded-md jn-font-bold jn-m-2
+        jn-transition-all jn-duration-400 jn-ease-in-out
           disabled:jn-opacity-80 disabled:jn-cursor-wait 
           jn-fixed -jn-translate-x-1/2 jn-left-1/2 jn-bg-jobnet-green
           ${!isButtonBusy ? "hover:jn-bg-jobnet-light-green" : null}
           ${!isButtonVisible ? "-jn-translate-y-full" : null}`}
-        onClick={() => onApply(working, done)}>
+        onClick={() => onApply(setIsButtonBusy, setCountDown)}>
         {buttonText}
       </button>
     </>
@@ -106,17 +57,56 @@ const ApplyButton = () => {
 
 export default ApplyButton
 
-const onApply = async (handleWorking: Function, handleDone: Function) => {
+function ButtonVisibiltyEffect(setVisibility: Function) {
+  const handleMouseMove = (e) => {
+    if (e.clientY > window.innerHeight * 0.3) {
+      setVisibility(false)
+    } else {
+      setVisibility(true)
+    }
+  }
+  setVisibility(true)
+
+  const timer = setTimeout(() => {
+    window.addEventListener("mousemove", handleMouseMove)
+  }, 2000)
+
+  return () => {
+    clearTimeout(timer)
+    window.removeEventListener("mousemove", handleMouseMove)
+  }
+}
+
+async function onApply(
+  setBusy: (busy: boolean) => void,
+  setCount: (number) => void
+) {
+  setBusy(true)
   const jobDescription = getJobDescription()
-  if (jobDescription) {
-    handleWorking()
+  if (!jobDescription) {
+    console.error("No job description found")
+  } else {
     const res = await sendToBackground({
       name: "openChat",
       body: jobDescription.innerText
     })
-    handleDone(res)
-  } else {
-    console.error("No job description found")
+    if (!res.error) {
+      let intervalId
+      setInterval(() => {
+        setCount((prevCount) => {
+          if (prevCount > 0) {
+            return prevCount - 1
+          } else {
+            setBusy(false)
+            clearInterval(intervalId)
+            return new_tab_delay_s
+          }
+        })
+      }, 1000)
+    } else {
+      HandleError(res.error)
+      setBusy(false)
+    }
   }
 }
 

@@ -46,27 +46,13 @@ const handler: PlasmoMessaging.MessageHandler = async (req, res) => {
     }
   ]
 
-  // Send initial prompt to API
-  // try {
-  //   response = await PostPrompt(messages, api_key)
-  // } catch (e) {
-  //   if (e.message.includes("Invalid API key")) {
-  //     res.send({ error: "invalid_api_key" })
-  //   } else {
-  //     console.error(e)
-  //     res.send({ error: "unknown_error" })
-  //   }
-  //   return
-  // }
-
-  // Save response to storage and go to chat
-  // messages.push({ role: "assistant", content: response })
+  // TODO: Prevent opening, if already open
+  // Option A - Check if tab is open if possible
+  // Option B - Check message history
   await local_storage.set("message-history", messages)
 
   res.send({ status: "success" })
-  //setTimeout(() => {
   goToChat()
-  //}, new_tab_delay_s * 1000)
   return
 }
 
