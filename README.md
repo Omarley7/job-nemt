@@ -1,21 +1,32 @@
 # Usage
+
 Here's a demo of the extension in action:
 
 https://github.com/Omarley7/job-nemt/assets/51030995/56347216-fe73-4fb9-bf1e-0200e6a9865b
 
 ## Install Alpha V. 0.1.0
+
 1. Unzip [job-nemt-alpha01.zip](https://github.com/Omarley7/job-nemt/files/12702631/job-nemt-alpha01.zip) to a known location.
 2. Open a Chrome-based browser and type in `chrome://extensions/` in address bar.
-4. Activate developer mode in the top right corner
-5. Press "Load unpacked" and find the folder "chrome-mv3-prod" that you unzipped from step 1.
+3. Activate developer mode in the top right corner
+4. Press "Load unpacked" and find the folder "chrome-mv3-prod" that you unzipped from step 1.
 
 ## Usage
+
 1. In the top right corner of Chrome, there's a puzzle piece icon where users can view all installed extensions. It's recommended to pin JobNemt using the pin button.
 2. The first time you open the extension, it will ask you for an API key. Use either your own OpenAI API key or ask the developer for a test key.
-3. Search for jobs easily on jobnet.dk :D 
+3. Search for jobs easily on jobnet.dk :D
 
 # Development
+
 This is a [Plasmo extension](https://docs.plasmo.com/) project bootstrapped with [`plasmo init`](https://www.npmjs.com/package/plasmo).
+
+## System Requirements:
+
+- Node.js 16.14.x or later
+- macOS, Windows or Linux
+- Chrome or Edge
+- Strongly reccomended to use [pnpm](https://pnpm.io/) as your package manager
 
 ## Getting Started
 
