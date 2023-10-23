@@ -3,15 +3,21 @@
   import { writable } from "svelte/store";
   import { apiKey } from "~/lib/stores/apiKey";
 
-  let name = writable("");
+  let name = writable(""); //TODO: these two should be in a single object and in storage
   let title = writable("");
 
   let tempAPIkey = "";
 
-  const url = new URL("https://job.jobnet.dk/CV/FindWork");
-  url.searchParams.append("SearchString", $name);
+  function handleJobSearch() {
+    const url = new URL("https://job.jobnet.dk/CV/FindWork");
+    url.searchParams.append("SearchString", $title);
+    chrome.tabs.create({ url: url.toString() });
+  }
 
-  const uploadCVurl = `chrome-extension://${chrome.runtime.id}/tabs/uploadCV.html`;
+  function handleUploadCV() {
+    const uploadCVpage = `chrome-extension://${chrome.runtime.id}/tabs/uploadCV.html`;
+    chrome.tabs.create({ url: uploadCVpage });
+  }
 </script>
 
 <div>
@@ -26,12 +32,13 @@
       }}
     />
   {:else}
-    <input bind:value={$name} placeholder="Navn" type="text" />
-    <input bind:value={$title} placeholder="Titel" type="text" />
+    <form>
+      <input bind:value={$name} placeholder="Navn" type="text" />
+      <input bind:value={$title} placeholder="Titel" type="text" />
+      <button on:click={handleJobSearch} type="submit"> Find job </button>
+    </form>
   {/if}
-  <button on:click={() => window.open(uploadCVurl, "_blank")} type="submit"
-    >Upload CV</button
-  >
+  <button on:click={handleUploadCV} type="submit">Upload CV</button>
 </div>
 
 <style>
