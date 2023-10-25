@@ -7,6 +7,11 @@
   });
 </script>
 
+<link
+  rel="stylesheet"
+  href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css"
+/>
+
 <div>
   <h1>Indsæt din openAI API nøgle for at bruge denne chrome-extension</h1>
   <input
