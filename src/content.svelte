@@ -7,7 +7,6 @@
   };
 
   export const getStyle: PlasmoGetStyle = () => {
-    console.log("getStyle called");
     const style = document.createElement("style");
     style.textContent = styleText;
     return style;
@@ -16,8 +15,19 @@
 
 <script lang="ts">
   import { onMount } from "svelte";
-  import { sendToBackground } from "@plasmohq/messaging";
-  const DEFAULT_BUTTON_TEXT = "Lav en personlig ansøgning med JobNemt!";
+  import {
+    Apply,
+    processErrorCode,
+    type errorResponse,
+  } from "~services/jobDescription";
+
+  let chatTabIndex: chrome.tabs.Tab; // TODO: Reference to tab is lost on refresh. Fix this.
+  // Options:
+  // 1. Store tabID in storage
+  // 🌟2. Store tabID in service worker --> openChat should return tabID if open.
+  // 3. Query tabs for tabID (this requires tab has a unique title or similar) possibly with URL ID from jobnet.
+  // 3. https://stackoverflow.com/questions/13071384/chrome-extension-how-to-get-current-webpage-url-from-background-html
+  // 3. Requires permission to tabs API :(
 
   enum ButtonState {
     READY,
@@ -26,104 +36,95 @@
     ERROR,
   }
 
-  let showButton = true;
-  let currentButtonState = ButtonState.READY;
-  let tabId: chrome.tabs.Tab;
-  let currentButtonText = DEFAULT_BUTTON_TEXT;
+  const buttonObject = {
+    hide: false as boolean,
+    state: ButtonState.READY as ButtonState,
+    handleClick: async () => {},
+    displayText: "" as string,
+    errorCode: undefined as undefined | string,
+  };
 
-  function extractJobDescription(): HTMLElement {
-    return document.querySelector("section.job-description-col");
+  function handleMouseMove(e: MouseEvent) {
+    buttonObject.hide = e.clientY > window.innerHeight * 0.3;
   }
 
   onMount(() => {
-    const handleMouseMove = (e) => {
-      if (e.clientY > window.innerHeight * 0.3) {
-        showButton = true;
-      } else {
-        showButton = true;
-      }
-    };
-
-    setTimeout(() => {
+    const timer = setTimeout(() => {
       window.addEventListener("mousemove", handleMouseMove);
     }, 2000);
 
     return () => {
+      clearTimeout(timer);
       window.removeEventListener("mousemove", handleMouseMove);
     };
   });
 
-  //   $: currentButtonText = buttonInProcessingState
-  //     ? `Åbner ny fane... (${remainingSeconds})`
-  //     : DEFAULT_BUTTON_TEXT;
-
-  async function handleApplyClick() {
-    switch (currentButtonState) {
+  $: {
+    switch (buttonObject.state) {
       case ButtonState.READY:
-        currentButtonState = ButtonState.PROCESSING;
-        const jobDescription = extractJobDescription();
-        if (!jobDescription) {
-          console.error("No job description found");
-        } else {
-          const res = await sendToBackground({
-            name: "openChat",
-            body: jobDescription.innerText,
-          });
-          if (res.error) {
-            displayError(res.error);
-            currentButtonState = ButtonState.ERROR;
-            break;
+        buttonObject.displayText = "Lav en personlig ansøgning med JobNemt!";
+
+        buttonObject.handleClick = async () => {
+          buttonObject.state = ButtonState.PROCESSING;
+          let response = await Apply();
+          if (response.success) {
+            //TODO: Add tabID
+            buttonObject.state = ButtonState.ALREADY_OPEN;
+          } else {
+            buttonObject.state = ButtonState.ERROR;
+            buttonObject.errorCode = response.errorCode;
+            return;
           }
-        }
+        };
         break;
 
       case ButtonState.PROCESSING:
-        // Do nothing;
+        buttonObject.displayText = "Åbner ny fane...";
+        buttonObject.handleClick = async () => {};
         break;
-      case ButtonState.ALREADY_OPEN:
-        //await handleAlreadyOpenState();
-        break;
-      case ButtonState.ERROR:
-        //await handleErrorState();
-        break;
-    }
-  }
 
-  function displayError(error: string) {
-    console.log(error);
-    switch (error) {
-      case "missing_cv":
-        alert("Du skal uploade dit CV før du kan ansøge med JobNemt");
-        sendToBackground({ name: "openCVmanager" });
+      case ButtonState.ALREADY_OPEN:
+        buttonObject.displayText = "Gå til JobNemt chat";
+        buttonObject.handleClick = async () => {
+          chrome.tabs.update(chatTabIndex.id, {
+            active: true,
+            highlighted: true,
+          });
+        };
         break;
-      case "missing_api_key":
-        alert("Du skal indtaste din API nøgle før du kan ansøge med JobNemt");
-        sendToBackground({ name: "openSettings" });
+
+      case ButtonState.ERROR:
+        buttonObject.displayText = "Ukendt fejl...";
+        if (!buttonObject.errorCode) break;
+        let { message, action } = processErrorCode(buttonObject.errorCode);
+        buttonObject.handleClick = async () => {
+          buttonObject.state = ButtonState.READY;
+        };
         break;
-      case "invalid_api_key":
-        alert(
-          "Der er er muligvis en fejl med din API nøgle. Prøv at indtaste den igen. Den starter med 'sk-'"
-        );
-        sendToBackground({ name: "openSettings" });
-        break;
-      default:
-        console.error(error);
-        alert("Der skete en ukendt fejl. Prøv igen senere");
     }
   }
 </script>
 
-{#if showButton}
-  <button
-    class="apply-btn jn-bg-jobnet-green
+<button
+  class="apply-btn
     jn-transition-all jn-duration-400 jn-ease-in-out
-    {true ? 'hover:jn-bg-jobnet-light-green' : ''}
-    {!true ? '-jn-translate-y-full' : ''} "
-    on:click={handleApplyClick}
-  >
-    {currentButtonText} help please. send
-  </button>
-{/if}
+    {buttonObject.hide ? '-jn-translate-y-full' : ''}
+
+    {buttonObject.state === ButtonState.READY &&
+    'jn-bg-jobnet-green hover:jn-bg-jobnet-light-green'}
+    
+    {buttonObject.state === ButtonState.PROCESSING &&
+    'jn-cursor-wait jn-bg-jobnet-green jn-opacity-50'}
+    
+    {buttonObject.state === ButtonState.ALREADY_OPEN &&
+    'jn-bg-jobnet-green hover:jn-bg-jobnet-light-green'}
+
+    {buttonObject.state === ButtonState.ERROR && 'jn-bg-red-500 jn-text-white'}
+"
+  on:click={buttonObject.handleClick}
+>
+  {buttonObject.displayText}
+</button>
 
 <style>
 </style>

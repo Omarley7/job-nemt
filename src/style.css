@@ -1,7 +1,5 @@
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap");
 
-/* @import url("https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css"); */
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -9,7 +7,7 @@
 @layer components {
   .apply-btn {
     @apply jn-fixed jn-text-2xl jn-p-4 jn-rounded-md jn-font-bold jn-m-2
-    jn-transition-all -jn-translate-x-1/2 jn-left-1/2
+    -jn-translate-x-1/2 jn-left-1/2
     disabled:jn-cursor-wait disabled:jn-opacity-80;
   }
 }

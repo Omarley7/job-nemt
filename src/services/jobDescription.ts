@@ -1,0 +1,66 @@
+import { sendToBackground } from "@plasmohq/messaging"
+
+function extractJobDescription(): errorResponse | string {
+  const jobDescription = document.querySelector(
+    "section.job-description-col"
+  ) as HTMLElement
+  if (!jobDescription) {
+    return { message: "No job description found" }
+  }
+  return jobDescription.innerText
+}
+
+export async function Apply(): Promise<{
+  success: boolean
+  tabIndex?: number
+  errorCode?: string
+}> {
+  const jobDescription = extractJobDescription()
+  const res = await sendToBackground({
+    name: "openChat",
+    body: jobDescription
+  })
+  // wait for 2 seconds
+  await new Promise((resolve) => setTimeout(resolve, 2000))
+
+  return { success: !res.error, errorCode: res.error }
+}
+
+export interface errorResponse {
+  message: string
+  action?: () => void
+}
+
+export function processErrorCode(error: string): errorResponse {
+  if (!error) {
+    return
+  }
+
+  const errorResponse: errorResponse = { message: "" }
+
+  switch (error) {
+    case "no_job_description_found":
+      errorResponse.message =
+        "Jeg kunne ikke finde en jobbeskrivelse på denne side. Prøv en anden..."
+      break
+    case "missing_cv":
+      errorResponse.message =
+        "Du skal uploade dit CV før du kan ansøge med JobNemt"
+      errorResponse.action = () => sendToBackground({ name: "openCVmanager" })
+      break
+    case "missing_api_key":
+      errorResponse.message =
+        "Du skal indtaste din API nøgle før du kan ansøge med JobNemt"
+      errorResponse.action = () => sendToBackground({ name: "openSettings" })
+      break
+    case "invalid_api_key":
+      errorResponse.message =
+        "Der er er muligvis en fejl med din API nøgle. Prøv at indtaste den igen. Den starter med 'sk-'"
+      errorResponse.action = () => sendToBackground({ name: "openSettings" })
+      break
+    default:
+      console.error(error)
+      errorResponse.message = "Der skete en ukendt fejl. Prøv igen senere"
+  }
+  return errorResponse
+}
