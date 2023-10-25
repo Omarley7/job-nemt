@@ -20,7 +20,12 @@
   }
 </script>
 
-<div>
+<link
+  rel="stylesheet"
+  href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css"
+/>
+
+<div style="width:20rem; padding:1rem">
   {#if $apiKey === ""}
     <h1>Indsæt din OpenAI API nøgle</h1>
     <input
@@ -37,10 +42,9 @@
       <input bind:value={$title} placeholder="Titel" type="text" />
       <button on:click={handleJobSearch} type="submit"> Find job </button>
     </form>
+    <button on:click={handleUploadCV} type="submit">Upload CV</button>
   {/if}
-  <button on:click={handleUploadCV} type="submit">Upload CV</button>
 </div>
 
 <style>
-  /* Coming soon */
 </style>
