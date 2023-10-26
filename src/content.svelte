@@ -36,19 +36,38 @@
     ERROR,
   }
 
-  const buttonObject = {
-    hide: false as boolean,
-    state: ButtonState.READY as ButtonState,
-    handleClick: async () => {},
-    displayText: "" as string,
-    errorCode: undefined as undefined | string,
-  };
+  const buttonObject = (() => {
+    // Private action that users will assign their actual click actions to
+    let _clickAction: () => Promise<void> = async () => {};
 
-  function handleMouseMove(e: MouseEvent) {
-    buttonObject.hide = e.clientY > window.innerHeight * 0.3;
-  }
+    // Public handler that users cannot overwrite
+    const handleClick = async () => {
+      console.log("Handling click");
+      buttonObject.errorCode = undefined;
+      buttonObject.state = ButtonState.PROCESSING;
+      await _clickAction();
+    };
+
+    return {
+      hide: false as boolean,
+      state: ButtonState.READY as ButtonState,
+      handleClick,
+      set clickAction(fn: () => Promise<void>) {
+        _clickAction = fn;
+      },
+      displayText: "" as string,
+      errorCode: undefined as undefined | string,
+    };
+  })();
 
   onMount(() => {
+    function handleMouseMove(e: MouseEvent) {
+      buttonObject.hide =
+        e.clientY > window.innerHeight * 0.3 &&
+        (buttonObject.state === ButtonState.READY ||
+          buttonObject.state === ButtonState.ALREADY_OPEN);
+    }
+
     const timer = setTimeout(() => {
       window.addEventListener("mousemove", handleMouseMove);
     }, 2000);
@@ -60,32 +79,39 @@
   });
 
   $: {
+    if (buttonObject.errorCode) {
+      buttonObject.state = ButtonState.ERROR;
+    } else {
+      buttonObject.state = ButtonState.READY;
+      // TODO: If tab is open, set to ALREADY_OPEN
+    }
+  }
+
+  $: {
+    console.log("buttonObject.state", buttonObject.state);
     switch (buttonObject.state) {
       case ButtonState.READY:
         buttonObject.displayText = "Lav en personlig ansøgning med JobNemt!";
 
-        buttonObject.handleClick = async () => {
-          buttonObject.state = ButtonState.PROCESSING;
+        buttonObject.clickAction = async () => {
           let response = await Apply();
           if (response.success) {
-            //TODO: Add tabID
+            //TODO: Set TabID instead of changing state
             buttonObject.state = ButtonState.ALREADY_OPEN;
           } else {
-            buttonObject.state = ButtonState.ERROR;
             buttonObject.errorCode = response.errorCode;
-            return;
           }
         };
         break;
 
       case ButtonState.PROCESSING:
         buttonObject.displayText = "Åbner ny fane...";
-        buttonObject.handleClick = async () => {};
+        buttonObject.clickAction = async () => {};
         break;
 
       case ButtonState.ALREADY_OPEN:
         buttonObject.displayText = "Gå til JobNemt chat";
-        buttonObject.handleClick = async () => {
+        buttonObject.clickAction = async () => {
           chrome.tabs.update(chatTabIndex.id, {
             active: true,
             highlighted: true,
@@ -95,11 +121,9 @@
 
       case ButtonState.ERROR:
         buttonObject.displayText = "Ukendt fejl...";
-        if (!buttonObject.errorCode) break;
         let { message, action } = processErrorCode(buttonObject.errorCode);
-        buttonObject.handleClick = async () => {
-          buttonObject.state = ButtonState.READY;
-        };
+        buttonObject.displayText = message;
+        buttonObject.clickAction = action;
         break;
     }
   }
@@ -121,7 +145,7 @@
 
     {buttonObject.state === ButtonState.ERROR && 'jn-bg-red-500 jn-text-white'}
 "
-  on:click={buttonObject.handleClick}
+  on:click={() => buttonObject.handleClick()}
 >
   {buttonObject.displayText}
 </button>
