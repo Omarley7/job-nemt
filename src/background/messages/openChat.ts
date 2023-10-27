@@ -4,24 +4,56 @@ import { createInitialPrompt, type ApiMessage } from "src/services/useOpenAI"
 import type { PlasmoMessaging } from "@plasmohq/messaging"
 import { Storage } from "@plasmohq/storage"
 
+export interface OpenChatRequest {
+  postingID: string
+  jobDescription?: string
+}
+
 const local_storage = new Storage({ area: "local" })
 const sync_storage = new Storage({ area: "sync" })
+const tab_ids: { [key: string]: number } = {}
 
-const goToChat = () => {
-  chrome.tabs.create({
+const goToChat = async (postingID: string) => {
+  let tab = await chrome.tabs.create({
     url: "chrome-extension://" + chrome.runtime.id + "/tabs/jobChat.html"
+  })
+  tab_ids[postingID] = tab.id
+  console.log("tab_ids", tab_ids)
+
+  return
+}
+
+const isTabOpen = async (postingID: string) => {
+  return new Promise<boolean>((resolve) => {
+    chrome.tabs.get(tab_ids[postingID], (tab) => {
+      if (!tab) {
+        delete tab_ids[postingID]
+        resolve(false)
+      } else {
+        resolve(true)
+      }
+    })
   })
 }
 
 const handler: PlasmoMessaging.MessageHandler = async (req, res) => {
-  if (typeof req.body !== "string") {
+  const { postingID, jobDescription } = req.body as OpenChatRequest
+
+  if (typeof postingID !== "string") {
     res.send({ error: "invalid_request" })
-    console.error("Invalid request body, got:")
-    console.error(req.body)
+    console.error("Invalid request body, got:", req.body)
     return
   }
 
-  const api_key = await sync_storage.get("APIKey")
+  if (typeof jobDescription !== "string") {
+    let tabIsOpen = await isTabOpen(postingID)
+    res.send({ chatExists: tabIsOpen })
+    if (tabIsOpen) {
+      chrome.tabs.update(tab_ids[postingID], { active: true })
+    }
+  }
+
+  const api_key = await sync_storage.get("APIkey")
   if (!api_key) {
     res.send({ error: "missing_api_key" })
     return
@@ -33,27 +65,14 @@ const handler: PlasmoMessaging.MessageHandler = async (req, res) => {
     return
   }
 
-  // Fetch system prompt
-  // Generate initial prompt
   const messages: ApiMessage[] = [
-    {
-      role: "system",
-      content: DA_SYSTEM_MESSAGE
-    },
-    {
-      role: "system",
-      content: createInitialPrompt(userCV, req.body)
-    }
+    { role: "system", content: DA_SYSTEM_MESSAGE },
+    { role: "system", content: createInitialPrompt(userCV, jobDescription) }
   ]
 
-  // TODO: Prevent opening, if already open
-  // Option A - Check if tab is open if possible
-  // Option B - Check message history
   await local_storage.set("message-history", messages)
-
-  res.send({ status: "success" })
-  goToChat()
-  return
+  goToChat(postingID)
+  res.send({ chatExists: true })
 }
 
 export default handler

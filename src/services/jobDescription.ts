@@ -10,25 +10,32 @@ function extractJobDescription(): errorResponse | string {
   return jobDescription.innerText
 }
 
-export async function Apply(): Promise<{
+export function extractLastPart(url: string): string | null {
+  const parts = url.split("/")
+  return parts.length > 0 ? parts[parts.length - 1] : null
+}
+
+export async function Apply(postingID: string): Promise<{
   success: boolean
   tabIndex?: number
-  errorCode?: string
+  data?: string
 }> {
   const jobDescription = extractJobDescription()
+  if (typeof jobDescription !== "string") {
+    return { success: false, data: jobDescription.message }
+  }
+
   const res = await sendToBackground({
     name: "openChat",
-    body: jobDescription
+    body: { postingID, jobDescription }
   })
-  // wait for 2 seconds
-  await new Promise((resolve) => setTimeout(resolve, 2000))
 
-  return { success: !res.error, errorCode: res.error }
+  return { success: !res.error, data: res.error }
 }
 
 export interface errorResponse {
   message: string
-  action?: () => void
+  action?: () => Promise<void>
 }
 
 export function processErrorCode(error: string): errorResponse {

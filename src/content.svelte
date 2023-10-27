@@ -18,7 +18,7 @@
   import {
     Apply,
     processErrorCode,
-    type errorResponse,
+    extractLastPart,
   } from "~services/jobDescription";
 
   let chatTabIndex: chrome.tabs.Tab; // TODO: Reference to tab is lost on refresh. Fix this.
@@ -42,7 +42,6 @@
 
     // Public handler that users cannot overwrite
     const handleClick = async () => {
-      console.log("Handling click");
       buttonObject.errorCode = undefined;
       buttonObject.state = ButtonState.PROCESSING;
       await _clickAction();
@@ -88,18 +87,18 @@
   }
 
   $: {
-    console.log("buttonObject.state", buttonObject.state);
     switch (buttonObject.state) {
       case ButtonState.READY:
         buttonObject.displayText = "Lav en personlig ansøgning med JobNemt!";
 
         buttonObject.clickAction = async () => {
-          let response = await Apply();
+          let response = await Apply(
+            extractLastPart(window.location.toString())
+          );
           if (response.success) {
-            //TODO: Set TabID instead of changing state
             buttonObject.state = ButtonState.ALREADY_OPEN;
           } else {
-            buttonObject.errorCode = response.errorCode;
+            buttonObject.errorCode = response.data;
           }
         };
         break;
