@@ -59,12 +59,13 @@ const handler: PlasmoMessaging.MessageHandler = async (req, res) => {
     return
   }
 
-  const userCV = await local_storage.get("user-cv")
+  const userCV = await local_storage.get("userCV")
   if (!userCV) {
     res.send({ error: "missing_cv" })
     return
   }
 
+  //Use Posting ID to create a new chat
   const messages: ApiMessage[] = [
     { role: "system", content: DA_SYSTEM_MESSAGE },
     { role: "system", content: createInitialPrompt(userCV, jobDescription) }
