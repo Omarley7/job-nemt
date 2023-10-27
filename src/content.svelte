@@ -21,14 +21,6 @@
     extractLastPart,
   } from "~services/jobDescription";
 
-  let chatTabIndex: chrome.tabs.Tab; // TODO: Reference to tab is lost on refresh. Fix this.
-  // Options:
-  // 1. Store tabID in storage
-  // 🌟2. Store tabID in service worker --> openChat should return tabID if open.
-  // 3. Query tabs for tabID (this requires tab has a unique title or similar) possibly with URL ID from jobnet.
-  // 3. https://stackoverflow.com/questions/13071384/chrome-extension-how-to-get-current-webpage-url-from-background-html
-  // 3. Requires permission to tabs API :(
-
   enum ButtonState {
     READY,
     PROCESSING,
@@ -110,12 +102,7 @@
 
       case ButtonState.ALREADY_OPEN:
         buttonObject.displayText = "Gå til JobNemt chat";
-        buttonObject.clickAction = async () => {
-          chrome.tabs.update(chatTabIndex.id, {
-            active: true,
-            highlighted: true,
-          });
-        };
+        buttonObject.clickAction = async () => {}; //TODO: Either reuse Apply() or make a new function
         break;
 
       case ButtonState.ERROR:
