@@ -7,15 +7,15 @@
   let generatedDrafts = [
     {
       title: "Draft 1",
-      draft: "Text coming soon....",
+      draft: "Text coming soon",
     },
     {
       title: "Draft 2",
-      draft: "Text coming soon....",
+      draft: "Text coming soon",
     },
     {
       title: "Draft 3",
-      draft: "Text coming soon....",
+      draft: "Text coming soon",
     },
   ];
 
@@ -23,7 +23,7 @@
 </script>
 
 <div
-  class="jn-p-6 jn-grid custom-grid jn-gap-6
+  class="jn-p-6 custom-grid jn-gap-6
  jn-h-screen jn-items-stretch"
 >
   <!-- Top section with cards -->
@@ -49,6 +49,9 @@
 
 <style>
   .custom-grid {
+    display: grid;
     grid-template-rows: 2fr 4fr 0.75fr;
+    grid-template-columns: 1fr 1fr 1fr 30rem;
+    /**TODO: Configure xl, lg, md, sm, xs. Need variable last col.*/
   }
 </style>
