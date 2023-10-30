@@ -10,5 +10,6 @@ module.exports = {
         "jobnet-light-green": "linear-gradient(#e7ff4c 25%,#a2b335)"
       }
     }
-  }
+  },
+  plugins: [require("@tailwindcss/typography"), require("daisyui")]
 }
