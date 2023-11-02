@@ -1,8 +1,41 @@
-<script>
+<script lang="ts">
   import "~/style.css";
   import DraftDisplay from "~lib/chat_components/draftDisplay.svelte";
   import DraftPreview from "~lib/chat_components/draftPreview.svelte";
   import NoteList from "~lib/chat_components/noteList.svelte";
+  import { Storage } from "@plasmohq/storage";
+  import { onMount } from "svelte";
+  import type { postingChat } from "~types";
+
+  const local_storage = new Storage({ area: "local" });
+  let postingChat: postingChat;
+
+  let postingID = "";
+
+  async function removeActiveStatus(tabID: number): Promise<void> {
+    if (tabID === postingChat.activeTab) {
+      delete postingChat.activeTab;
+      local_storage.get(`postingChats`).then(async (storagedata) => {
+        storagedata[postingID] = postingChat;
+        await local_storage.set(`postingChats`, storagedata);
+      });
+    }
+  }
+
+  onMount(() => {
+    chrome.tabs.onRemoved.addListener(removeActiveStatus);
+
+    const queryParams = new URLSearchParams(window.location.search);
+    postingID = queryParams.get("postingID");
+
+    local_storage.get(`postingChats`).then((storagedata) => {
+      postingChat = storagedata[postingID];
+    });
+
+    return () => {
+      chrome.tabs.onRemoved.removeListener(removeActiveStatus);
+    };
+  });
 
   let generatedDrafts = [
     {
