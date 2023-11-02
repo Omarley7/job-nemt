@@ -20,6 +20,10 @@
     processErrorCode,
     extractLastPart,
   } from "~services/jobDescription";
+  import { Storage } from "@plasmohq/storage";
+
+  const postingID = extractLastPart(window.location.toString());
+  const local_storage = new Storage({ area: "local" });
 
   enum ButtonState {
     READY,
@@ -53,10 +57,13 @@
 
   onMount(() => {
     function handleMouseMove(e: MouseEvent) {
-      buttonObject.hide =
+      const newHideProperty =
         e.clientY > window.innerHeight * 0.3 &&
         (buttonObject.state === ButtonState.READY ||
           buttonObject.state === ButtonState.ALREADY_OPEN);
+      if (newHideProperty !== buttonObject.hide) {
+        buttonObject.hide = newHideProperty;
+      }
     }
 
     const timer = setTimeout(() => {
@@ -72,9 +79,22 @@
   $: {
     if (buttonObject.errorCode) {
       buttonObject.state = ButtonState.ERROR;
+    } else if (buttonObject.state != ButtonState.PROCESSING) {
+      local_storage.get("postingChats").then((storagedata) => {
+        buttonObject.state =
+          storagedata && !storagedata[postingID]
+            ? ButtonState.READY
+            : ButtonState.ALREADY_OPEN;
+      });
+    }
+  }
+
+  async function handleApply() {
+    let response = await Apply(postingID);
+    if (!response.errorCode) {
+      buttonObject.state = ButtonState.ALREADY_OPEN;
     } else {
-      buttonObject.state = ButtonState.READY;
-      // TODO: If tab is open, set to ALREADY_OPEN
+      buttonObject.errorCode = response.errorCode;
     }
   }
 
@@ -82,17 +102,7 @@
     switch (buttonObject.state) {
       case ButtonState.READY:
         buttonObject.displayText = "Lav en personlig ansøgning med JobNemt!";
-
-        buttonObject.clickAction = async () => {
-          let response = await Apply(
-            extractLastPart(window.location.toString())
-          );
-          if (response.success) {
-            buttonObject.state = ButtonState.ALREADY_OPEN;
-          } else {
-            buttonObject.errorCode = response.data;
-          }
-        };
+        buttonObject.clickAction = handleApply;
         break;
 
       case ButtonState.PROCESSING:
@@ -102,7 +112,7 @@
 
       case ButtonState.ALREADY_OPEN:
         buttonObject.displayText = "Gå til JobNemt chat";
-        buttonObject.clickAction = async () => {}; //TODO: Either reuse Apply() or make a new function
+        buttonObject.clickAction = handleApply;
         break;
 
       case ButtonState.ERROR:

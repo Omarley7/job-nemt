@@ -1,7 +1,7 @@
 <script lang="ts">
   // @ts-check
   import { writable } from "svelte/store";
-  import { apiKey } from "~/lib/stores/apiKey";
+  import { apiKey } from "~lib/stores/apiKey";
 
   let name = writable(""); //TODO: these two should be in a single object and in storage
   let title = writable("");
@@ -17,6 +17,10 @@
   function handleUploadCV() {
     const uploadCVpage = `chrome-extension://${chrome.runtime.id}/tabs/uploadCV.html`;
     chrome.tabs.create({ url: uploadCVpage });
+  }
+
+  function handleClearLocalStorage() {
+    chrome.storage.local.clear();
   }
 </script>
 
@@ -44,6 +48,7 @@
     </form>
     <button on:click={handleUploadCV} type="submit">Upload CV</button>
   {/if}
+  <button on:click={handleClearLocalStorage}>Clear CV and chats</button>
 </div>
 
 <style>

@@ -1,56 +1,45 @@
-import { DA_SYSTEM_MESSAGE } from "constants/prompts"
-import { createInitialPrompt, type ApiMessage } from "src/services/useOpenAI"
-
 import type { PlasmoMessaging } from "@plasmohq/messaging"
 import { Storage } from "@plasmohq/storage"
 
-export interface OpenChatRequest {
-  postingID: string
-  jobDescription?: string
-}
+import type { postingChat } from "~types"
 
 const local_storage = new Storage({ area: "local" })
 const sync_storage = new Storage({ area: "sync" })
-const tab_ids: { [key: string]: number } = {}
 
-const goToChat = async (postingID: string) => {
-  let tab = await chrome.tabs.create({
-    url: "chrome-extension://" + chrome.runtime.id + "/tabs/jobChat.html"
-  })
-  tab_ids[postingID] = tab.id
-  console.log("tab_ids", tab_ids)
-
-  return
-}
-
-const isTabOpen = async (postingID: string) => {
-  return new Promise<boolean>((resolve) => {
-    chrome.tabs.get(tab_ids[postingID], (tab) => {
-      if (!tab) {
-        delete tab_ids[postingID]
-        resolve(false)
-      } else {
-        resolve(true)
+const goToChat = async (postingID: string): Promise<void> => {
+  local_storage.get("postingChats").then(async (storageData) => {
+    if (!storageData) {
+      throw new Error("No postingChats found in local storage")
+    }
+    let currentPosting: postingChat = storageData[postingID]
+    if (currentPosting.activeTab) {
+      try {
+        await chrome.tabs.update(currentPosting.activeTab, { active: true })
+        return
+      } catch (e) {
+        console.error(e)
       }
-    })
+    }
+
+    await chrome.tabs.create(
+      {
+        url: `chrome-extension://${chrome.runtime.id}/tabs/jobChat.html?postingID=${postingID}`
+      },
+      async (tab) => {
+        storageData[postingID].activeTab = tab.id
+        await local_storage.set("postingChats", storageData)
+      }
+    )
   })
 }
 
 const handler: PlasmoMessaging.MessageHandler = async (req, res) => {
-  const { postingID, jobDescription } = req.body as OpenChatRequest
+  const { postingID } = req.body
 
   if (typeof postingID !== "string") {
     res.send({ error: "invalid_request" })
     console.error("Invalid request body, got:", req.body)
     return
-  }
-
-  if (typeof jobDescription !== "string") {
-    let tabIsOpen = await isTabOpen(postingID)
-    res.send({ chatExists: tabIsOpen })
-    if (tabIsOpen) {
-      chrome.tabs.update(tab_ids[postingID], { active: true })
-    }
   }
 
   const api_key = await sync_storage.get("APIkey")
@@ -65,15 +54,8 @@ const handler: PlasmoMessaging.MessageHandler = async (req, res) => {
     return
   }
 
-  //Use Posting ID to create a new chat
-  const messages: ApiMessage[] = [
-    { role: "system", content: DA_SYSTEM_MESSAGE },
-    { role: "system", content: createInitialPrompt(userCV, jobDescription) }
-  ]
-
-  await local_storage.set("message-history", messages)
-  goToChat(postingID)
-  res.send({ chatExists: true })
+  await goToChat(postingID)
+  res.send({})
 }
 
 export default handler

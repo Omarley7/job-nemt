@@ -70,11 +70,7 @@ export const PostPrompt = async (
     const errorData = await response.json()
     console.error(`Fetch returned: ${response.status}`)
     console.error(errorData.error.message)
-    throw new Error(
-      errorData.error.code === "invalid_api_key"
-        ? "Invalid API key"
-        : "Unknown error occurred"
-    ) // This is bullshit
+    throw new Error(errorData.error.code)
   }
 
   return response.body!.getReader()
