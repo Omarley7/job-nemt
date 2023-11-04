@@ -5,10 +5,10 @@
   import NoteList from "~lib/chat_components/noteList.svelte";
   import { Storage } from "@plasmohq/storage";
   import { onMount } from "svelte";
-  import type { postingChat } from "~types";
+  import type { JobApplicationDetails } from "~types";
 
   const local_storage = new Storage({ area: "local" });
-  let postingChat: postingChat;
+  let postingChat: JobApplicationDetails;
 
   let postingID = "";
 

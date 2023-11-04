@@ -1,61 +1,90 @@
 import type { PlasmoMessaging } from "@plasmohq/messaging"
 import { Storage } from "@plasmohq/storage"
 
-import type { postingChat } from "~types"
+import type { JobApplicationDetails } from "~types"
 
-const local_storage = new Storage({ area: "local" })
-const sync_storage = new Storage({ area: "sync" })
+const localStorageService = new Storage({ area: "local" })
+const settingsStorageService = new Storage({ area: "sync" })
 
-const goToChat = async (postingID: string): Promise<void> => {
-  local_storage.get("postingChats").then(async (storageData) => {
-    if (!storageData) {
-      throw new Error("No postingChats found in local storage")
+const openJobChatTab = async (
+  applicationDetails: JobApplicationDetails
+): Promise<void> => {
+  if (applicationDetails.activeTab) {
+    try {
+      await chrome.tabs.update(applicationDetails.activeTab, { active: true })
+      return
+    } catch (e) {
+      console.error(e)
     }
-    let currentPosting: postingChat = storageData[postingID]
-    if (currentPosting.activeTab) {
-      try {
-        await chrome.tabs.update(currentPosting.activeTab, { active: true })
-        return
-      } catch (e) {
-        console.error(e)
-      }
-    }
+  }
 
-    await chrome.tabs.create(
-      {
-        url: `chrome-extension://${chrome.runtime.id}/tabs/jobChat.html?postingID=${postingID}`
-      },
-      async (tab) => {
-        storageData[postingID].activeTab = tab.id
-        await local_storage.set("postingChats", storageData)
-      }
-    )
-  })
+  await chrome.tabs.create(
+    {
+      url: `chrome-extension://${chrome.runtime.id}/tabs/jobChat.html?postingID=${applicationDetails.jobPostingID}`
+    },
+    async (tab) => {
+      let storageData: Record<string, JobApplicationDetails> =
+        await localStorageService.get("jobApplicationRecords")
+
+      storageData[applicationDetails.jobPostingID].activeTab = tab.id
+      await localStorageService.set("jobApplicationRecords", storageData)
+    }
+  )
 }
 
 const handler: PlasmoMessaging.MessageHandler = async (req, res) => {
-  const { postingID } = req.body
+  const { postingID, jobDescription } = req.body
 
-  if (typeof postingID !== "string") {
+  if (typeof postingID !== "string" || typeof jobDescription !== "string") {
     res.send({ error: "invalid_request" })
     console.error("Invalid request body, got:", req.body)
     return
   }
 
-  const api_key = await sync_storage.get("APIkey")
-  if (!api_key) {
+  const API_KEY = await settingsStorageService.get("APIkey")
+  if (!API_KEY) {
     res.send({ error: "missing_api_key" })
     return
   }
 
-  const userCV = await local_storage.get("userCV")
+  const userCV = await localStorageService.get("userCV")
   if (!userCV) {
     res.send({ error: "missing_cv" })
     return
   }
 
-  await goToChat(postingID)
-  res.send({})
+  try {
+    let applicationDetails = await ensureJobApplicationStored(
+      postingID,
+      jobDescription
+    )
+    await openJobChatTab(applicationDetails)
+    res.send({})
+  } catch (e) {
+    console.error("Error ensuring posting ID is stored:", e)
+    res.send({ error: "storage_full" })
+    return
+  }
 }
 
 export default handler
+
+async function ensureJobApplicationStored(
+  postingID: string,
+  jobDescription: string
+): Promise<JobApplicationDetails> {
+  let storageData: Record<string, JobApplicationDetails> =
+    (await localStorageService.get("jobApplicationRecords")) || {}
+
+  if (!storageData[postingID]) {
+    storageData[postingID] = {
+      jobPostingID: postingID,
+      jobDescription,
+      initialDrafts: [],
+      initialNotes: []
+    }
+    // Attempt to store the updated data
+    await localStorageService.set("jobApplicationRecords", storageData)
+  }
+  return storageData[postingID]
+}
