@@ -1,5 +1,5 @@
-export interface postingChat {
-  postingID: string
+export interface JobApplicationDetails {
+  jobPostingID: string
   jobDescription: string
   activeTab?: number
   messages?: {
@@ -8,4 +8,11 @@ export interface postingChat {
   }[]
   initialDrafts: string[]
   initialNotes: string[]
+}
+
+export enum ButtonState {
+  READY,
+  PROCESSING,
+  ALREADY_OPEN,
+  ERROR
 }

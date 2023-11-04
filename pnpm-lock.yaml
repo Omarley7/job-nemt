@@ -14,9 +14,6 @@ dependencies:
   '@plasmohq/storage':
     specifier: ^1.8.0
     version: 1.8.0(react@18.2.0)
-  '@types/pdfjs-dist':
-    specifier: ^2.10.378
-    version: 2.10.378
   pdfjs-dist:
     specifier: ^3.10.111
     version: 3.10.111
@@ -2562,16 +2559,6 @@ packages:
 
   /@types/parse-json@4.0.0:
     resolution: {integrity: sha512-//oorEZjL6sbPcKUaCdIGlIUeH26mgzimjBB77G6XRgnDl/L5wOnpyBGRe/Mmf5CVW3PwEBE1NjiMZ/ssFh4wA==}
-    dev: false
-
-  /@types/pdfjs-dist@2.10.378:
-    resolution: {integrity: sha512-TRdIPqdsvKmPla44kVy4jv5Nt5vjMfVjbIEke1CRULIrwKNRC4lIiZvNYDJvbUMNCFPNIUcOKhXTyMJrX18IMA==}
-    deprecated: This is a stub types definition. pdfjs-dist provides its own type definitions, so you do not need this installed.
-    dependencies:
-      pdfjs-dist: 3.10.111
-    transitivePeerDependencies:
-      - encoding
-      - supports-color
     dev: false
 
   /@types/pug@2.0.8:

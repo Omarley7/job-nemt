@@ -15,135 +15,120 @@
 
 <script lang="ts">
   import { onMount } from "svelte";
-  import {
-    Apply,
-    processErrorCode,
-    extractLastPart,
-  } from "~services/jobDescription";
+  import { applyToJobPosting, extractID } from "~services/jobNet";
+  import { processErrorCode } from "~utils/buttonErrorHandling";
   import { Storage } from "@plasmohq/storage";
+  import { ButtonState, type JobApplicationDetails } from "~types";
 
-  const postingID = extractLastPart(window.location.toString());
-  const local_storage = new Storage({ area: "local" });
+  const postingID = extractID(window.location.toString());
+  const localStorageService = new Storage({ area: "local" });
 
-  enum ButtonState {
-    READY,
-    PROCESSING,
-    ALREADY_OPEN,
-    ERROR,
+  let buttonState: ButtonState;
+  let buttonStyleClasses: string;
+  let buttonText = "";
+  let shouldHideButton = false;
+  let currentButtonClickAction: (() => Promise<ButtonState>) | undefined;
+  let currentError: undefined | string = undefined;
+
+  const processButtonClick = async () => {
+    if (!currentButtonClickAction) return;
+    currentError = undefined;
+    await updateButtonState(await currentButtonClickAction());
+  };
+
+  async function updateButtonState(newState: ButtonState) {
+    if (newState === buttonState) return;
+    if (newState === ButtonState.READY) {
+      const storageData: Record<string, JobApplicationDetails> =
+        (await localStorageService.get("jobApplicationRecords")) || {};
+
+      buttonState =
+        storageData && storageData[postingID]
+          ? ButtonState.ALREADY_OPEN
+          : ButtonState.READY;
+    } else buttonState = newState;
+
+    switch (buttonState) {
+      case ButtonState.READY:
+        buttonText = "Lav en personlig ansøgning med JobNemt!";
+        currentButtonClickAction = initiateJobApplicationProcess;
+        break;
+
+      case ButtonState.PROCESSING:
+        //Not used yet...
+        buttonText = "Arbejder...";
+        currentButtonClickAction = undefined;
+        //TODO: Add loading animation
+        //TODO: Add timeout error
+        break;
+
+      case ButtonState.ALREADY_OPEN:
+        buttonText = "Gå til JobNemt chat";
+        currentButtonClickAction = initiateJobApplicationProcess;
+        break;
+
+      case ButtonState.ERROR:
+        buttonText = "Ukendt fejl...";
+        if (!currentError) break;
+        let { message, action } = processErrorCode(currentError);
+        buttonText = message;
+        currentButtonClickAction = action;
+        break;
+    }
   }
 
-  const buttonObject = (() => {
-    // Private action that users will assign their actual click actions to
-    let _clickAction: () => Promise<void> = async () => {};
+  async function initiateJobApplicationProcess(): Promise<ButtonState> {
+    let response = await applyToJobPosting(postingID);
+    if (!response.errorCode) {
+      return ButtonState.ALREADY_OPEN;
+    } else {
+      currentError = response.errorCode;
+      return ButtonState.ERROR;
+    }
+  }
 
-    // Public handler that users cannot overwrite
-    const handleClick = async () => {
-      buttonObject.errorCode = undefined;
-      buttonObject.state = ButtonState.PROCESSING;
-      await _clickAction();
-    };
-
-    return {
-      hide: false as boolean,
-      state: ButtonState.READY as ButtonState,
-      handleClick,
-      set clickAction(fn: () => Promise<void>) {
-        _clickAction = fn;
-      },
-      displayText: "" as string,
-      errorCode: undefined as undefined | string,
-    };
-  })();
+  function toggleButtonVisibility(e: MouseEvent) {
+    shouldHideButton =
+      e.clientY > window.innerHeight * 0.3 &&
+      (buttonState === ButtonState.READY ||
+        buttonState === ButtonState.ALREADY_OPEN);
+  }
 
   onMount(() => {
-    function handleMouseMove(e: MouseEvent) {
-      const newHideProperty =
-        e.clientY > window.innerHeight * 0.3 &&
-        (buttonObject.state === ButtonState.READY ||
-          buttonObject.state === ButtonState.ALREADY_OPEN);
-      if (newHideProperty !== buttonObject.hide) {
-        buttonObject.hide = newHideProperty;
-      }
-    }
-
+    (async () => await updateButtonState(ButtonState.READY))();
     const timer = setTimeout(() => {
-      window.addEventListener("mousemove", handleMouseMove);
+      window.addEventListener("mousemove", toggleButtonVisibility);
     }, 2000);
 
     return () => {
       clearTimeout(timer);
-      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mousemove", toggleButtonVisibility);
     };
   });
 
   $: {
-    if (buttonObject.errorCode) {
-      buttonObject.state = ButtonState.ERROR;
-    } else if (buttonObject.state != ButtonState.PROCESSING) {
-      local_storage.get("postingChats").then((storagedata) => {
-        buttonObject.state =
-          storagedata && !storagedata[postingID]
-            ? ButtonState.READY
-            : ButtonState.ALREADY_OPEN;
-      });
-    }
-  }
-
-  async function handleApply() {
-    let response = await Apply(postingID);
-    if (!response.errorCode) {
-      buttonObject.state = ButtonState.ALREADY_OPEN;
-    } else {
-      buttonObject.errorCode = response.errorCode;
-    }
-  }
-
-  $: {
-    switch (buttonObject.state) {
+    switch (buttonState) {
       case ButtonState.READY:
-        buttonObject.displayText = "Lav en personlig ansøgning med JobNemt!";
-        buttonObject.clickAction = handleApply;
-        break;
-
-      case ButtonState.PROCESSING:
-        buttonObject.displayText = "Åbner ny fane...";
-        buttonObject.clickAction = async () => {};
-        break;
-
       case ButtonState.ALREADY_OPEN:
-        buttonObject.displayText = "Gå til JobNemt chat";
-        buttonObject.clickAction = handleApply;
+        buttonStyleClasses =
+          " jn-bg-jobnet-green hover:jn-bg-jobnet-light-green";
         break;
-
+      case ButtonState.PROCESSING:
+        buttonStyleClasses = " jn-cursor-wait jn-bg-jobnet-green jn-opacity-50";
+        break;
       case ButtonState.ERROR:
-        buttonObject.displayText = "Ukendt fejl...";
-        let { message, action } = processErrorCode(buttonObject.errorCode);
-        buttonObject.displayText = message;
-        buttonObject.clickAction = action;
+        buttonStyleClasses = " jn-bg-red-500 jn-text-white";
         break;
     }
   }
 </script>
 
 <button
-  class="apply-btn
-    jn-transition-all jn-duration-400 jn-ease-in-out
-    {buttonObject.hide ? '-jn-translate-y-full' : ''}
-
-    {buttonObject.state === ButtonState.READY &&
-    'jn-bg-jobnet-green hover:jn-bg-jobnet-light-green'}
-    
-    {buttonObject.state === ButtonState.PROCESSING &&
-    'jn-cursor-wait jn-bg-jobnet-green jn-opacity-50'}
-    
-    {buttonObject.state === ButtonState.ALREADY_OPEN &&
-    'jn-bg-jobnet-green hover:jn-bg-jobnet-light-green'}
-
-    {buttonObject.state === ButtonState.ERROR && 'jn-bg-red-500 jn-text-white'}
-"
-  on:click={() => buttonObject.handleClick()}
+  class:-jn-translate-y-full={shouldHideButton}
+  class="apply-btn jn-transition-all jn-duration-400 jn-ease-in-out {buttonStyleClasses}"
+  on:click={async () => await processButtonClick()}
 >
-  {buttonObject.displayText}
+  {buttonText}
 </button>
 
 <style>

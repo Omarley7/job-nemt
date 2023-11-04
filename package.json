@@ -13,7 +13,6 @@
     "@chatscope/chat-ui-kit-react": "^1.10.1",
     "@plasmohq/messaging": "^0.5.0",
     "@plasmohq/storage": "^1.8.0",
-    "@types/pdfjs-dist": "^2.10.378",
     "pdfjs-dist": "^3.10.111",
     "plasmo": "0.83.0",
     "svelte": "^4.2.2",
