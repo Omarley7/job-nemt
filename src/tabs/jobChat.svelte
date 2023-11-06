@@ -6,55 +6,71 @@
   import { Storage } from "@plasmohq/storage";
   import { onMount } from "svelte";
   import type { JobApplicationDetails } from "~types";
+  import { getPort } from "@plasmohq/messaging/port";
 
-  const local_storage = new Storage({ area: "local" });
-  let postingChat: JobApplicationDetails;
+  const localStorageService = new Storage({ area: "local" });
+  const openAIport = getPort("openAI");
+  let applicationDetails: JobApplicationDetails;
 
-  let postingID = "";
+  let postingID: string | null;
 
-  async function removeActiveStatus(tabID: number): Promise<void> {
-    if (tabID === postingChat.activeTab) {
-      delete postingChat.activeTab;
-      local_storage.get(`postingChats`).then(async (storagedata) => {
-        storagedata[postingID] = postingChat;
-        await local_storage.set(`postingChats`, storagedata);
-      });
+  function readIncomingMessage(chunks: [string, string, string]) {
+    // loading false
+    // if chunks[0, 1 and 2] === "null"
+    // -- Append message to applicationDetails.messages
+    // -- Close connection to Port.
+    // else
+    if (chunks) {
+      for (let i = 0; i < chunks.length; i++) {
+        generatedDrafts[i].draft += chunks[i];
+      }
     }
   }
 
-  onMount(() => {
-    chrome.tabs.onRemoved.addListener(removeActiveStatus);
+  async function getApplicationDetails(): Promise<JobApplicationDetails> {
+    postingID = new URLSearchParams(window.location.search).get("postingID");
 
-    const queryParams = new URLSearchParams(window.location.search);
-    postingID = queryParams.get("postingID");
+    if (!postingID) throw new Error("No postingID found in query params");
 
-    local_storage.get(`postingChats`).then((storagedata) => {
-      postingChat = storagedata[postingID];
-    });
+    applicationDetails = await localStorageService.get(postingID);
 
-    return () => {
-      chrome.tabs.onRemoved.removeListener(removeActiveStatus);
-    };
+    if (!applicationDetails)
+      throw new Error("No application details found in storage");
+
+    return applicationDetails;
+  }
+
+  onMount(async () => {
+    //chrome.tabs.onRemoved.addListener(removeActiveStatus);
+    applicationDetails = await getApplicationDetails();
+
+    // If no messages stored, send prompt to OpenAI. //TODO: Add some loading?
+    if (!applicationDetails.messages) {
+      console.log("No messages found in storage");
+      openAIport.onMessage.addListener(readIncomingMessage);
+
+      openAIport.postMessage({
+        body: {
+          type: "first draft",
+          jobDescription: applicationDetails.jobDescription,
+        },
+      });
+    } else {
+      // Show messages
+      console.log(applicationDetails.messages);
+    }
   });
 
   let generatedDrafts = [
-    {
-      title: "Draft 1",
-      draft: "Text coming soon",
-    },
-    {
-      title: "Draft 2",
-      draft: "Text coming soon",
-    },
-    {
-      title: "Draft 3",
-      draft: "Text coming soon",
-    },
+    { title: "Draft 1", draft: "" },
+    { title: "Draft 2", draft: "" },
+    { title: "Draft 3", draft: "" },
   ];
 
   let notes = ["Note 1", "Note 2", "Note 3"];
 </script>
 
+<h1 class="jn-text-center jn-text-xl jn-font-bold">Annonce ID: {postingID}</h1>
 <div
   class="jn-p-6 custom-grid jn-gap-6
  jn-h-screen jn-items-stretch"
@@ -62,12 +78,12 @@
   <!-- Top section with cards -->
   {#each generatedDrafts as draft}
     <div class="jn-min-h-32">
-      <DraftPreview draft={draft.draft} title={draft.title} />
+      <DraftPreview draft={draft.draft.substring(0, 500)} title={draft.title} />
     </div>
   {/each}
 
   <div class="jn-col-span-3 jn-h-full">
-    <DraftDisplay />
+    <DraftDisplay text={generatedDrafts[0].draft} />
   </div>
 
   <div class="jn-col-start-4 jn-row-start-1 jn-row-end-3">
