@@ -2,9 +2,9 @@ import type { PlasmoMessaging } from "@plasmohq/messaging"
 import { Storage } from "@plasmohq/storage"
 
 import type { JobApplicationDetails } from "~types"
+import { checkAPIkeyAndUserCV } from "~utils/storageChecks"
 
 const localStorageService = new Storage({ area: "local" })
-const settingsStorageService = new Storage({ area: "sync" })
 
 const openJobChatTab = async (
   applicationDetails: JobApplicationDetails
@@ -18,22 +18,23 @@ const openJobChatTab = async (
     }
   }
 
+  const ID = applicationDetails.jobPostingID
   await chrome.tabs.create(
     {
-      url: `chrome-extension://${chrome.runtime.id}/tabs/jobChat.html?postingID=${applicationDetails.jobPostingID}`
+      url: `chrome-extension://${chrome.runtime.id}/tabs/jobChat.html?postingID=${ID}`
     },
     async (tab) => {
-      let storageData: Record<string, JobApplicationDetails> =
-        await localStorageService.get("jobApplicationRecords")
-
-      storageData[applicationDetails.jobPostingID].activeTab = tab.id
-      await localStorageService.set("jobApplicationRecords", storageData)
+      applicationDetails.activeTab = tab.id
+      await localStorageService.set(ID, applicationDetails)
     }
   )
 }
 
 const handler: PlasmoMessaging.MessageHandler = async (req, res) => {
-  const { postingID, jobDescription } = req.body
+  const { postingID, jobDescription } = req.body as {
+    postingID: string
+    jobDescription: string
+  }
 
   if (typeof postingID !== "string" || typeof jobDescription !== "string") {
     res.send({ error: "invalid_request" })
@@ -41,29 +42,20 @@ const handler: PlasmoMessaging.MessageHandler = async (req, res) => {
     return
   }
 
-  const API_KEY = await settingsStorageService.get("APIkey")
-  if (!API_KEY) {
-    res.send({ error: "missing_api_key" })
-    return
-  }
-
-  const userCV = await localStorageService.get("userCV")
-  if (!userCV) {
-    res.send({ error: "missing_cv" })
-    return
-  }
+  const error_code = await checkAPIkeyAndUserCV()
+  if (error_code) return res.send({ error: error_code })
 
   try {
+    // This step might be redundant now 🤔
     let applicationDetails = await ensureJobApplicationStored(
       postingID,
       jobDescription
     )
     await openJobChatTab(applicationDetails)
-    res.send({})
+    return res.send({})
   } catch (e) {
     console.error("Error ensuring posting ID is stored:", e)
-    res.send({ error: "storage_full" })
-    return
+    return res.send({ error: "storage_full" })
   }
 }
 
@@ -73,18 +65,18 @@ async function ensureJobApplicationStored(
   postingID: string,
   jobDescription: string
 ): Promise<JobApplicationDetails> {
-  let storageData: Record<string, JobApplicationDetails> =
-    (await localStorageService.get("jobApplicationRecords")) || {}
+  let applicationDetails: JobApplicationDetails | void =
+    await localStorageService.get(postingID)
 
-  if (!storageData[postingID]) {
-    storageData[postingID] = {
+  if (!applicationDetails) {
+    applicationDetails = {
       jobPostingID: postingID,
       jobDescription,
       initialDrafts: [],
       initialNotes: []
     }
     // Attempt to store the updated data
-    await localStorageService.set("jobApplicationRecords", storageData)
+    await localStorageService.set(postingID, applicationDetails)
   }
-  return storageData[postingID]
+  return applicationDetails
 }

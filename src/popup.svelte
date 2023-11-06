@@ -2,6 +2,9 @@
   // @ts-check
   import { writable } from "svelte/store";
   import { apiKey } from "~lib/stores/apiKey";
+  import { Storage } from "@plasmohq/storage";
+
+  const localStorageService = new Storage({ area: "local" });
 
   let name = writable(""); //TODO: these two should be in a single object and in storage
   let title = writable("");
@@ -19,8 +22,11 @@
     chrome.tabs.create({ url: uploadCVpage });
   }
 
-  function handleClearLocalStorage() {
+  async function handleClearLocalStorage() {
+    const userCV = await localStorageService.get("userCV");
     chrome.storage.local.clear();
+    await localStorageService.set("userCV", userCV);
+    window.close();
   }
 </script>
 

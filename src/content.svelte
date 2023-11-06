@@ -15,7 +15,9 @@
 
 <script lang="ts">
   import { onMount } from "svelte";
-  import { applyToJobPosting, extractID } from "~services/jobNet";
+  import { sendToBackground } from "@plasmohq/messaging";
+
+  import { extractJobDescription, extractID } from "~services/jobNet";
   import { processErrorCode } from "~utils/buttonErrorHandling";
   import { Storage } from "@plasmohq/storage";
   import { ButtonState, type JobApplicationDetails } from "~types";
@@ -32,57 +34,30 @@
 
   const processButtonClick = async () => {
     if (!currentButtonClickAction) return;
+    const actionToExecute = currentButtonClickAction;
+    await updateButtonState(ButtonState.PROCESSING);
     currentError = undefined;
-    await updateButtonState(await currentButtonClickAction());
+    await updateButtonState(await actionToExecute());
   };
 
   async function updateButtonState(newState: ButtonState) {
     if (newState === buttonState) return;
     if (newState === ButtonState.READY) {
-      const storageData: Record<string, JobApplicationDetails> =
-        (await localStorageService.get("jobApplicationRecords")) || {};
+      const applicationDetails: JobApplicationDetails =
+        (await localStorageService.get(postingID)) || {};
 
-      buttonState =
-        storageData && storageData[postingID]
-          ? ButtonState.ALREADY_OPEN
-          : ButtonState.READY;
+      buttonState = applicationDetails.activeTab
+        ? ButtonState.ALREADY_OPEN
+        : ButtonState.READY;
     } else buttonState = newState;
-
-    switch (buttonState) {
-      case ButtonState.READY:
-        buttonText = "Lav en personlig ansøgning med JobNemt!";
-        currentButtonClickAction = initiateJobApplicationProcess;
-        break;
-
-      case ButtonState.PROCESSING:
-        //Not used yet...
-        buttonText = "Arbejder...";
-        currentButtonClickAction = undefined;
-        //TODO: Add loading animation
-        //TODO: Add timeout error
-        break;
-
-      case ButtonState.ALREADY_OPEN:
-        buttonText = "Gå til JobNemt chat";
-        currentButtonClickAction = initiateJobApplicationProcess;
-        break;
-
-      case ButtonState.ERROR:
-        buttonText = "Ukendt fejl...";
-        if (!currentError) break;
-        let { message, action } = processErrorCode(currentError);
-        buttonText = message;
-        currentButtonClickAction = action;
-        break;
-    }
   }
 
   async function initiateJobApplicationProcess(): Promise<ButtonState> {
-    let response = await applyToJobPosting(postingID);
-    if (!response.errorCode) {
+    let errorCode = await applyToJobPosting(postingID);
+    if (!errorCode) {
       return ButtonState.ALREADY_OPEN;
     } else {
-      currentError = response.errorCode;
+      currentError = errorCode;
       return ButtonState.ERROR;
     }
   }
@@ -109,17 +84,47 @@
   $: {
     switch (buttonState) {
       case ButtonState.READY:
-      case ButtonState.ALREADY_OPEN:
+        buttonText = "Lav en personlig ansøgning med JobNemt!";
+        currentButtonClickAction = initiateJobApplicationProcess;
         buttonStyleClasses =
-          " jn-bg-jobnet-green hover:jn-bg-jobnet-light-green";
+          "jn-bg-jobnet-green hover:jn-bg-jobnet-light-green";
+        break;
+
+      case ButtonState.ALREADY_OPEN:
+        buttonText = "Gå til JobNemt chat";
+        currentButtonClickAction = initiateJobApplicationProcess;
+        buttonStyleClasses =
+          "jn-bg-jobnet-green hover:jn-bg-jobnet-light-green";
         break;
       case ButtonState.PROCESSING:
-        buttonStyleClasses = " jn-cursor-wait jn-bg-jobnet-green jn-opacity-50";
+        buttonText = "Arbejder...";
+        currentButtonClickAction = undefined;
+        //TODO: Add timeout error
+        buttonStyleClasses = "jn-cursor-wait jn-bg-jobnet-green jn-opacity-50";
         break;
       case ButtonState.ERROR:
-        buttonStyleClasses = " jn-bg-red-500 jn-text-white";
+        buttonText = "Ukendt fejl...";
+        if (!currentError) break;
+        let { message, action } = processErrorCode(currentError);
+        buttonText = message;
+        currentButtonClickAction = action;
+        buttonStyleClasses = "jn-bg-red-500 jn-text-white";
         break;
     }
+  }
+
+  async function applyToJobPosting(postingID: string): Promise<string | void> {
+    const jobDescription = extractJobDescription();
+    if (typeof jobDescription !== "string") {
+      return jobDescription.message;
+    }
+
+    const res = await sendToBackground({
+      name: "openChat",
+      body: { postingID, jobDescription },
+    });
+
+    return res.error;
   }
 </script>
 
