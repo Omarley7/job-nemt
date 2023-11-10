@@ -1,6 +1,7 @@
 <script lang="ts">
   import "~/style.css";
   import DraftDisplay from "~lib/chat_components/draftDisplay.svelte";
+  import { scrollToBottom } from "~lib/chat_components/draftDisplay.svelte";
   import DraftPreview from "~lib/chat_components/draftPreview.svelte";
   import NoteList from "~lib/chat_components/noteList.svelte";
   import { Storage } from "@plasmohq/storage";
@@ -13,27 +14,56 @@
   let applicationDetails: JobApplicationDetails;
 
   let drafts = ["", "", ""];
+  let drafting: boolean = false;
+  let notes: string[] = [];
   let selectedDraft = 0;
   let postingID: string | null;
   let loading: boolean = true;
   let loadingText = "Loading...";
 
+  async function initialize() {
+    applicationDetails = await getApplicationDetails();
+
+    if (!applicationDetails.initialDrafts) {
+      openAIport.onMessage.addListener(readIncomingMessage);
+
+      openAIport.postMessage({
+        body: {
+          type: "first draft",
+          jobDescription: applicationDetails.jobDescription,
+        },
+      });
+    } else {
+      drafts = applicationDetails.initialDrafts;
+      loading = false;
+    }
+  }
+
   function readIncomingMessage(
-    chunks: [string, string, string] | { error: string }
+    chunks: [string, string, string] | { error: string } | { DONE: true }
   ) {
     if ("error" in chunks) {
       loadingText = chunks.error;
       return;
     }
     loading = false;
-    // if chunks[0, 1 and 2] === "null"
-    // -- Append message to applicationDetails.messages
-    // -- Close connection to Port.
-    // else
+    drafting = true;
+
+    if ("DONE" in chunks) {
+      applicationDetails.initialDrafts = drafts;
+      localStorageService.set(
+        applicationDetails.jobPostingID,
+        applicationDetails
+      );
+      openAIport.disconnect();
+      drafting = false;
+    }
+
     if (Array.isArray(chunks)) {
       for (let i = 0; i < chunks.length; i++) {
         drafts[i] += chunks[i];
       }
+      scrollToBottom();
     }
   }
 
@@ -50,27 +80,13 @@
     return applicationDetails;
   }
 
-  onMount(async () => {
-    applicationDetails = await getApplicationDetails();
+  onMount(() => {
+    initialize();
 
-    // If no messages stored, send prompt to OpenAI. //TODO: Add some loading?
-    if (!applicationDetails.messages) {
-      console.log("No messages found in storage");
-      openAIport.onMessage.addListener(readIncomingMessage);
-
-      openAIport.postMessage({
-        body: {
-          type: "first draft",
-          jobDescription: applicationDetails.jobDescription,
-        },
-      });
-    } else {
-      // Show messages
-      console.log(applicationDetails.messages);
-    }
+    return () => {
+      openAIport.disconnect();
+    };
   });
-
-  let notes = ["Note 1", "Note 2", "Note 3"];
 </script>
 
 {#if loading}
@@ -82,7 +98,9 @@
   </div>
 {/if}
 
-<div class="jn-p-6 custom-grid jn-gap-6 jn-h-screen jn-items-stretch">
+<div
+  class="jn-pt-4 jn-pb-4 jn-pl-6 jn-pr-6 custom-grid jn-gap-6 jn-h-screen jn-items-stretch"
+>
   <h1 class="jn-text-center jn-text-xl jn-font-bold jn-col-span-full">
     Annonce ID: {postingID}
   </h1>
@@ -98,7 +116,7 @@
       aria-label={`Draft ${i + 1}`}
     >
       <DraftPreview
-        draft={draft.substring(0, 500)}
+        draft={draft.substring(0, 750)}
         title={`Draft: ${i + 1}`}
         selected={selectedDraft === i}
       />
@@ -106,7 +124,7 @@
   {/each}
 
   <div class="jn-col-span-3 jn-h-full">
-    <DraftDisplay text={drafts[selectedDraft]} />
+    <DraftDisplay text={drafts[selectedDraft]} isDisabled={drafting} />
   </div>
 
   <div class="jn-col-start-4 jn-row-start-2 jn-row-end-4">
@@ -114,7 +132,7 @@
   </div>
 
   <!-- Submit button -->
-  <div class="jn-col-span-4 jn-mt-6 jn-h-2">
+  <div class="jn-col-span-4 jn-h-2">
     <button class="jn-btn jn-btn-primary jn-w-full"> Lav din ansøgning </button>
   </div>
 </div>
@@ -122,7 +140,7 @@
 <style>
   .custom-grid {
     display: grid;
-    grid-template-rows: 2rem 2fr 4fr 0.5fr;
+    grid-template-rows: 1.75rem minmax(12rem, 0.75fr) minmax(4rem, 2fr) 3.2rem;
     grid-template-columns: 1fr 1fr 1fr 25rem;
     /**TODO: Configure xl, lg, md, sm, xs. Need variable last col.*/
   }

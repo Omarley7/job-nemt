@@ -72,7 +72,6 @@ async function ensureJobApplicationStored(
     applicationDetails = {
       jobPostingID: postingID,
       jobDescription,
-      initialDrafts: [],
       initialNotes: []
     }
     // Attempt to store the updated data
