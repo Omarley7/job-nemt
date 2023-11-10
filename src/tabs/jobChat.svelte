@@ -23,8 +23,13 @@
 
   async function initialize() {
     applicationDetails = await getApplicationDetails();
+    console.log(applicationDetails);
 
-    if (!applicationDetails.initialDrafts) {
+    if (
+      !applicationDetails.initialDrafts ||
+      applicationDetails.initialDrafts.length === 0
+    ) {
+      console.log("Sending");
       openAIport.onMessage.addListener(readIncomingMessage);
 
       openAIport.postMessage({
