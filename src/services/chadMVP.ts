@@ -2,7 +2,10 @@ import { DA_SYSTEM_MESSAGE } from "constants/prompts"
 
 import { Storage } from "@plasmohq/storage"
 
-import type { ApiMessage } from "~services/useOpenAI"
+interface ApiMessage {
+  role: "user" | "system" | "assistant"
+  content: string
+}
 
 const syncStorageService = new Storage({ area: "sync" })
 let API_KEY: string
@@ -67,6 +70,7 @@ const parseJson = (jsonString: string) => {
   try {
     return JSON.parse(jsonString)
   } catch (error) {
+    console.error("Error parsing JSON:", error)
     return { choices: [{ delta: { content: "" }, index: 0 }] }
   }
 }
@@ -74,7 +78,8 @@ const parseJson = (jsonString: string) => {
 // Main function to stream applicant drafts
 export const streamThreeApplicantDrafts = async (
   request: ApiMessage[],
-  callback: (result: string[]) => void
+  callback: (result: string[]) => void,
+  singalDone: () => void
 ): Promise<string | void> => {
   try {
     API_KEY = await getVerifiedAPIKey()
@@ -87,6 +92,7 @@ export const streamThreeApplicantDrafts = async (
     }
 
     await processStream(reader, callback)
+    singalDone()
   } catch (error: any) {
     console.error("Error:", error)
     return error.message
