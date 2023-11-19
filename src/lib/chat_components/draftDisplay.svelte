@@ -1,7 +1,12 @@
 <script lang="ts" context="module">
+  import { throttle } from "~utils/rateLimit";
   let textareaElement: HTMLTextAreaElement;
+  export const throttleScrollToBottom = throttle(scrollToBottom, 500);
   export function scrollToBottom() {
-    textareaElement.scrollTop = textareaElement.scrollHeight;
+    textareaElement.scrollTo({
+      top: textareaElement.scrollHeight,
+      behavior: "smooth",
+    });
   }
 </script>
 

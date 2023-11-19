@@ -1,7 +1,7 @@
 <script lang="ts">
   import "~/style.css";
   import DraftDisplay from "~lib/chat_components/draftDisplay.svelte";
-  import { scrollToBottom } from "~lib/chat_components/draftDisplay.svelte";
+  import { throttleScrollToBottom } from "~lib/chat_components/draftDisplay.svelte";
   import DraftPreview from "~lib/chat_components/draftPreview.svelte";
   import NoteList from "~lib/chat_components/noteList.svelte";
   import { Storage } from "@plasmohq/storage";
@@ -23,13 +23,11 @@
 
   async function initialize() {
     applicationDetails = await getApplicationDetails();
-    console.log(applicationDetails);
 
     if (
       !applicationDetails.initialDrafts ||
       applicationDetails.initialDrafts.length === 0
     ) {
-      console.log("Sending");
       openAIport.onMessage.addListener(readIncomingMessage);
 
       openAIport.postMessage({
@@ -68,7 +66,8 @@
       for (let i = 0; i < chunks.length; i++) {
         drafts[i] += chunks[i];
       }
-      scrollToBottom();
+      //TODO: Update to only scroll to bottom when the user is at the bottom of the textarea
+      throttleScrollToBottom();
     }
   }
 

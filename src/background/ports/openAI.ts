@@ -1,7 +1,7 @@
 import type { PlasmoMessaging } from "@plasmohq/messaging"
 import { Storage } from "@plasmohq/storage"
 
-import { streamThreeApplicantDrafts } from "~services/chadMVP"
+import { streamThreeApplicantDrafts } from "~services/chadMVPapi"
 
 const localStorageService = new Storage({ area: "local" })
 
