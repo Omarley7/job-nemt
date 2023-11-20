@@ -1,7 +1,7 @@
 <script lang="ts">
   import CardBody from "~lib/chat_components/cardBody.svelte";
 
-  export let notes = [""];
+  export let notes: string[] = [""];
   let userNote = "";
 
   function addNote() {
