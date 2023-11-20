@@ -1,99 +1,46 @@
 <script lang="ts">
   import "~/style.css";
-  import DraftDisplay from "~lib/chat_components/draftDisplay.svelte";
-  import { throttleScrollToBottom } from "~lib/chat_components/draftDisplay.svelte";
-  import DraftPreview from "~lib/chat_components/draftPreview.svelte";
   import NoteList from "~lib/chat_components/noteList.svelte";
   import { Storage } from "@plasmohq/storage";
-  import { onMount } from "svelte";
   import type { JobApplicationDetails } from "~types";
-  import { getPort } from "@plasmohq/messaging/port";
+  import ThreeDrafts from "~lib/threeDrafts.svelte";
 
+  // I think we need to add a dispatch error from child to parent
+  window.onerror = function (message, source, lineno, colno, error) {
+    console.log("Caught error: ", message, source, lineno, colno, error);
+    loadingText = "Error: " + message;
+  };
+
+  // We COULD add a store for this... But no reactivity from local storage
+  // Since we don't want to add support between Extension components
   const localStorageService = new Storage({ area: "local" });
-  const openAIport = getPort("openAI");
   let applicationDetails: JobApplicationDetails;
 
-  let drafts = ["", "", ""];
-  let drafting: boolean = false;
   let notes: string[] = [];
-  let selectedDraft = 0;
-  let postingID: string | null;
-  let loading: boolean = true;
-  let loadingText = "Loading...";
-
-  async function initialize() {
-    applicationDetails = await getApplicationDetails();
-
-    if (
-      !applicationDetails.initialDrafts ||
-      applicationDetails.initialDrafts.length === 0
-    ) {
-      openAIport.onMessage.addListener(readIncomingMessage);
-
-      openAIport.postMessage({
-        body: {
-          type: "first draft",
-          jobDescription: applicationDetails.jobDescription,
-        },
-      });
-    } else {
-      drafts = applicationDetails.initialDrafts;
-      loading = false;
-    }
-  }
-
-  function readIncomingMessage(
-    chunks: [string, string, string] | { error: string } | { DONE: true }
-  ) {
-    if ("error" in chunks) {
-      loadingText = chunks.error;
-      return;
-    }
-    loading = false;
-    drafting = true;
-
-    if ("DONE" in chunks) {
-      applicationDetails.initialDrafts = drafts;
-      localStorageService.set(
-        applicationDetails.jobPostingID,
-        applicationDetails
-      );
-      openAIport.disconnect();
-      drafting = false;
-    }
-
-    if (Array.isArray(chunks)) {
-      for (let i = 0; i < chunks.length; i++) {
-        drafts[i] += chunks[i];
-      }
-      //TODO: Update to only scroll to bottom when the user is at the bottom of the textarea
-      throttleScrollToBottom();
-    }
-  }
+  let postingID: string;
+  let loadingText: string | undefined = "Loading...";
 
   async function getApplicationDetails(): Promise<JobApplicationDetails> {
-    postingID = new URLSearchParams(window.location.search).get("postingID");
+    postingID =
+      new URLSearchParams(window.location.search).get("postingID") ?? "";
 
-    if (!postingID) throw new Error("No postingID found in query params");
+    if (postingID === "") {
+      loadingText = "No postingID found in query params";
+      throw new Error(loadingText);
+    }
 
     applicationDetails = await localStorageService.get(postingID);
 
-    if (!applicationDetails)
-      throw new Error("No application details found in storage");
-
+    if (!applicationDetails) {
+      loadingText = "No application details found in local storage";
+      throw new Error(loadingText);
+    }
+    loadingText = undefined;
     return applicationDetails;
   }
-
-  onMount(() => {
-    initialize();
-
-    return () => {
-      openAIport.disconnect();
-    };
-  });
 </script>
 
-{#if loading}
+{#if loadingText !== undefined}
   <div
     class="jn-flex jn-flex-col jn-items-center jn-justify-center jn-h-screen"
   >
@@ -108,29 +55,9 @@
   <h1 class="jn-text-center jn-text-xl jn-font-bold jn-col-span-full">
     Annonce ID: {postingID}
   </h1>
-  {#each drafts as draft, i}
-    <div
-      class="jn-min-h-32 jn-w-full"
-      tabindex="0"
-      on:click={() => (selectedDraft = i)}
-      on:keydown={(e) => {
-        if (e.key === "Enter" || e.key === " ") selectedDraft = i;
-      }}
-      role="button"
-      aria-label={`Draft ${i + 1}`}
-    >
-      <DraftPreview
-        draft={draft.substring(0, 750)}
-        title={`Draft: ${i + 1}`}
-        selected={selectedDraft === i}
-      />
-    </div>
-  {/each}
-
-  <div class="jn-col-span-3 jn-h-full">
-    <DraftDisplay text={drafts[selectedDraft]} isDisabled={drafting} />
-  </div>
-
+  {#await getApplicationDetails() then applicationDetails}
+    <ThreeDrafts {applicationDetails} />
+  {/await}
   <div class="jn-col-start-4 jn-row-start-2 jn-row-end-4">
     <NoteList {notes} />
   </div>

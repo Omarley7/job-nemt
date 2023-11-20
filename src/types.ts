@@ -6,7 +6,7 @@ export interface JobApplicationDetails {
     content: string
     role: string
   }[]
-  initialDrafts?: string[]
+  initialDrafts?: [string, string, string]
   initialNotes: string[]
 }
 

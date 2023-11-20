@@ -13,7 +13,7 @@
 <script lang="ts">
   import CardBody from "~lib/chat_components/cardBody.svelte";
 
-  export let text = "";
+  export let text: string;
   export let isDisabled = false;
 </script>
 
