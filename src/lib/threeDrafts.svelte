@@ -15,8 +15,6 @@
   //Disable when user scrolls up
   const scrollToBottom = throttleScrollToBottom
 
-  let clazz: string = ""
-  export { clazz as class }
   export let applicationDetails: JobApplicationDetails
   let drafting: boolean
   let drafts: [string, string, string] = ["", "", ""]
@@ -70,7 +68,7 @@
   }
 </script>
 
-<div class="multi-drafts jn-gap-6 ${clazz}">
+<div class="multi-drafts jn-gap-6">
   {#each drafts as draft, i}
     <div
       class="jn-min-h-16 jn-w-full"
