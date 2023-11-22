@@ -55,7 +55,7 @@
     Annonce ID: {postingID}
   </h1>
   {#await getApplicationDetails() then applicationDetails}
-    <ThreeDrafts {applicationDetails} class="main" />
+    <ThreeDrafts {applicationDetails} />
   {/await}
   <div class="notes">
     <NoteList {notes} />
@@ -73,7 +73,7 @@
     grid-template-columns: 1fr 25rem;
     grid-template-areas:
       "header header"
-      "main notes"
+      ". notes"
       "submit submit";
     /**TODO: Configure xl, lg, md, sm, xs. Need variable last col.*/
   }
@@ -88,9 +88,5 @@
 
   .notes {
     grid-area: notes;
-  }
-
-  .main {
-    grid-area: main;
   }
 </style>
