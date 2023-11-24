@@ -1,51 +1,52 @@
 <script>
-  import { getDocument, GlobalWorkerOptions } from "pdfjs-dist";
-  import { userCV } from "~lib/stores/userCV";
+  import { getDocument, GlobalWorkerOptions } from "pdfjs-dist"
+
+  import { userCV } from "~lib/stores/userCV"
 
   async function handleCVUpload(event) {
-    const file = event.target.files[0];
-    const reader = new FileReader();
+    const file = event.target.files[0]
+    const reader = new FileReader()
     GlobalWorkerOptions.workerSrc = await import(
       "pdfjs-dist/build/pdf.worker.entry"
-    );
+    )
 
-    reader.onload = (e) => ParsePDF(e, userCV.set);
-    reader.readAsArrayBuffer(file);
+    reader.onload = (e) => ParsePDF(e, userCV.set)
+    reader.readAsArrayBuffer(file)
   }
 
   async function handleDeleteCV() {
-    await userCV.set("");
+    await userCV.set("")
   }
 
   async function ParsePDF(e, setData) {
-    const pdfData = e.target.result;
-    const pdf = await getDocument(pdfData).promise;
-    const maxPages = 4;
-    let extractedText = "";
+    const pdfData = e.target.result
+    const pdf = await getDocument(pdfData).promise
+    const maxPages = Math.min(4, pdf.numPages)
+    let extractedText = ""
 
     try {
       for (let pageNumber = 1; pageNumber <= maxPages; pageNumber++) {
-        const page = await pdf.getPage(pageNumber);
-        const textContent = await page.getTextContent();
+        const page = await pdf.getPage(pageNumber)
+        const textContent = await page.getTextContent()
         const pageText = textContent.items
           .map((item) => ("str" in item ? item.str : ""))
-          .join(" ");
-        extractedText += pageText;
+          .join(" ")
+        extractedText += pageText
       }
     } catch (error) {
       if (!error.message.includes("Invalid page request."))
-        throw new Error(error);
+        throw new Error(error)
+      else console.warn(error) //Warn to simplify reading future errors
     } finally {
-      await setData(extractedText);
-      pdf.destroy();
+      await setData(extractedText)
+      pdf.destroy()
     }
   }
 </script>
 
 <link
   rel="stylesheet"
-  href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css"
-/>
+  href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css" />
 
 <div>
   <h1>Upload CV</h1>
